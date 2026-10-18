@@ -126,6 +126,7 @@ swift run -c release SillHost Safari                 # optional: preselect a mat
 swift run -c release SillHost --virtual-display      # each streamed window on its own HiDPI display; Ctrl-C restores it
 swift run -c release SillHost --direct-wireless      # also over peer-to-peer Wi-Fi, for a device with no shared network
 swift run -c release SillHost --no-clipboard         # share nothing of the clipboard with devices (on by default, as in Sill.app)
+swift run -c release SillHost --let-display-sleep    # neither hold this Mac's display awake while a device is connected nor wake it when one connects (on by default, as in Sill.app)
 swift run -c release SillHost --synthetic            # the Desktop streams a test pattern; no Screen Recording needed
 SILL_TEST_PATTERN=picture:/path/to.jpg swift run -c release SillHost --synthetic   # the Desktop a still picture instead (TEST ONLY)
 swift run -c release SillHost --remote               # the remote door for this run, on any free port (--remote=PORT)
@@ -543,6 +544,38 @@ over (the receipt and its note included; through `sillrelay.py
 --blackhole-after S` it never comes), and `-SillSettings 1 -SillSettingsCloseAt
 <s>` holds the Settings panel over the chip until then; the console's
 "clipboard: …" lines say what happened.
+
+## The Mac's display while a device is connected
+
+A sleeping display is not composited, so once the Mac's display goes dark
+ScreenCaptureKit has nothing to give a device but black (the plan and its
+results are in docs/display-sleep-plan.md). So while a device is connected
+(home or remote) and Settings › General's "Keep the display awake while a
+device is connected" is on (saved as `keepDisplayAwake`, on by default,
+applied at once; `-SillSetAfter '<s> keepDisplayAwake=0'` in the bare app;
+the CLI's `--let-display-sleep` turns it off for a run), the host holds one
+IOKit assertion, `PreventUserIdleDisplaySleep` named "Sill is streaming to a
+device" (`pmset -g assertions` lists it), released when the last device leaves
+("Display: kept awake while a device is connected." and "Display: may sleep
+again (no device connected)."). It also keeps the Mac from idle system sleep.
+A display already asleep when a device connects, or picks a source, is woken as
+a key press would wake it (`IOPMAssertionDeclareUserActivity`), and the
+stream's start waits up to 3 s for it to light ("Display: it was asleep; woke
+it for a device (lit in 0.8 s)."); a Mac that asks for its password after the
+display sleeps then shows its lock screen, which only its owner can unlock, and
+the line says so. Only idle sleep is held off: the display put to sleep by hand
+(the power button, a hot corner, ⌃⇧⏏) sleeps, and the picture goes black until
+it wakes. A synthetic host never touches the display. The code is
+`DisplayPower` (the rule `DisplayPowerRule`, pure, `Tests/checks/display-power`).
+
+Waking a Mac that is itself asleep is another matter: nothing inside a sleeping
+Mac can do it, and an iPhone or iPad cannot send Wake-on-LAN over Wi-Fi in
+general. A Bonjour Sleep Proxy on the network (an Apple TV, a HomePod, another
+Mac; `dns-sd -B _sleep-proxy._udp` lists one) with the Mac's "Wake for network
+access" on keeps the sleeping Mac's Bonjour record registered, and a connection
+to it wakes the Mac; the device's redials of a listed Mac (issue #69) give that
+a chance. Without one, keep the Mac from sleeping (System Settings › Energy, or
+Battery on a laptop), as the support page says.
 
 ## The Mac's menus on the device
 

@@ -8,6 +8,40 @@ Formerly winstream; the folder still carries the old name.
 
 ## Current step
 
+**The Mac's display while a device is connected (2026-10-17, branch `display-sleep` from main at
+5c323e6; docs/display-sleep-plan.md has the plan, its open questions with the default taken, and
+Aman's tests).** Aman: "when the screen goes black on the Mac (display shuts off) then the Sill app
+doesn't work, it just shows a black screen. Also Sill doesn't wake the computer from sleep." A
+sleeping display is not composited, so ScreenCaptureKit gives a device black; nothing held the
+display (`AppModel.holdAppNapOff` held only idle system sleep, for a device away). Host only: no
+wire change, nothing on the device.
+- `HostConfig.keepDisplayAwake` (on in `standard`; the Mac's alone, like Share clipboard: absent from
+  StreamSettings, HostSettingsChange, `DeviceSettings.accepted`, `applying`, `restartNeeded`; applied
+  at once by `setTarget`). Sill.app: Settings › General "Keep the display awake while a device is
+  connected" (saved `keepDisplayAwake`; `-SillSetAfter '<s> keepDisplayAwake=0'`); the CLI's
+  `--let-display-sleep`.
+- `DisplayPower` (main actor; the rule `DisplayPowerRule`, pure, `Tests/checks/display-power`, in
+  CI's matrix): while the setting is on and `onClientCountChanged` counts a device, one IOKit
+  assertion `PreventUserIdleDisplaySleep` named "Sill is streaming to a device" (one line each way:
+  "Display: kept awake while a device is connected.", "Display: may sleep again (no device
+  connected)."); released with the last device, the setting off, `shutdownForExit`. A display asleep
+  when the first device connects, or when `select` starts a source, is woken
+  (`IOPMAssertionDeclareUserActivity`, as a key press) and `select` waits up to 3 s for it to light
+  before capture ("Display: it was asleep; woke it for a device (lit in 0.8 s)."; "… This Mac is
+  locked: unlock it to see it from the device." from `SessionLock`). With the setting off, one line
+  says the device sees nothing. A synthetic host never holds or wakes. Only idle sleep is held off:
+  a display put to sleep by hand sleeps.
+- Waking a Mac itself asleep: nothing in Sill can (an iOS app sends no Wake-on-LAN over Wi-Fi); a
+  Bonjour Sleep Proxy with "Wake for network access" can, and #69's redials give it a chance.
+  Unchanged here; DEVELOPMENT.md's new section and support.html's "The picture is black" say so.
+- **Unverified: nothing here compiled or ran.** The session's shell on Aman's Mac is a Linux VM
+  without Swift, so the branch waits for `swift build -c release`, the three iOS builds (unchanged
+  sources, a check only), `Tests/checks/run-all.sh` (display-power 50 checks and 15 mutants;
+  away-quality 79 and 22) and the plan's §4 on the Mac: the hold in `pmset -g assertions`, the
+  display staying on past the Energy minutes while the iPad streams, the wake on connect with the
+  picture not black, the lock screen's case (open question 3), and R6 (what the picture does with
+  the switch off when the display sleeps).
+
 **The clipboard both ways (2026-10-14, branch `clipboard` from main at 985a733; issue #64; PR #78;
 the plan, its open questions with the default taken for each, the results and the review's fixes are
 in `docs/clipboard-plan.md`).** Noah: work on the clipboard (after #67/#68, #69, #59, #57, #58), text

@@ -259,6 +259,10 @@ package final class StreamCoordinator {
     /// subscribed, while Share clipboard with devices (`HostConfig.shareClipboard`) is on. Looks at
     /// nothing while nobody subscribes.
     let clipboard: HostClipboard
+    /// The Mac's display while devices are connected (docs/display-sleep-plan.md): held from idle
+    /// sleep while one is and Keep display awake (`HostConfig.keepDisplayAwake`) is on, woken when a
+    /// device connects or picks a source while it is asleep. A synthetic host never touches it.
+    let display: DisplayPower
     /// TEST ONLY. `SILL_TEST_MENU_PID=<pid>` on a --synthetic host: the test pattern's menus are that
     /// process's (the gates' fixture, Scripts/menufixture.swift), read and pressed through the same
     /// code, never activated (the Desktop's rule). Nil otherwise; `testMenuLine` is what `start`
@@ -320,6 +324,7 @@ package final class StreamCoordinator {
         launchID = launch
         // A synthetic host shares a pasteboard of its own, never this Mac's clipboard.
         clipboard = HostClipboard(server: server, enabled: config.shareClipboard, launchID: launch, synthetic: synthetic)
+        display = DisplayPower(enabled: config.keepDisplayAwake, synthetic: synthetic)
         let hook = Self.testMenuHook(synthetic: synthetic)
         testMenuPID = hook.pid
         testMenuLine = hook.line
@@ -422,6 +427,10 @@ package final class StreamCoordinator {
                 // Nobody is watching: stop capturing and encoding. The next client picks afresh.
                 if count == 0 { self.viewport = nil; self.clientFPS = [:] }   // the next device starts from scratch
                 if count == 0 { self.gestureChords.forget() }                 // and did not open a view it could close
+                // The display: held awake while anyone is connected, and woken now if the first device
+                // finds it asleep (its pick's select then waits for it to light).
+                self.display.devices(count)
+                if count > 0, wasEmpty { _ = self.display.wakeIfAsleep() }
                 // On the software encoder, the hardware is checked only while someone watches.
                 if count == 0 { self.stopRecheck() } else { self.devicesPresent(firstArrived: wasEmpty) }
                 if count > 0 {
@@ -664,6 +673,8 @@ package final class StreamCoordinator {
         // Share clipboard with devices, at once rather than between pipelines: off must stop what goes
         // out now, not after a restart. The lists say `clipboard` again (or no longer).
         if clipboard.setEnabled(new.shareClipboard) { broadcastList() }
+        // Keep display awake too: off must let the display sleep now, on must hold it now.
+        display.setEnabled(new.keepDisplayAwake)
         guard new != target else { return false }
         pendingConfig = new
         publishSettings()
@@ -1297,6 +1308,9 @@ package final class StreamCoordinator {
         // all, kept through a restart that keeps it (a window picked, a rotation, a resize).
         judgeLinks(source == .none ? nil : LinkJudge.Quality(bitrate: bitrate, fps: fps, captureScale: Double(captureScale)))
         let comeForward = bringForward || cameHome
+        // A sleeping display streams black (DisplayPower): woken as the device connected, or here, and
+        // waited for, at most 3 s, so the first picture is the lit display's, not a black one.
+        if source != .none, display.wakeIfAsleep() { await display.waitUntilLit(testHost: server.isTestHost) }
 
         if virtualDisplay {
             // The stage follows the selection. A different window sends the staged one home first
@@ -1894,6 +1908,7 @@ package final class StreamCoordinator {
         shuttingDown = true
         restoreFits(keeping: nil)
         stage.release()
+        display.release()
     }
 
     /// The CLI's default path at a signal (HostShutdown.installKeyRelease), just before it dies of it:

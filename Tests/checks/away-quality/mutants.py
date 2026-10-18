@@ -24,6 +24,9 @@ MUTANTS = [
     ("AQ17 standard shares no clipboard", H + "HostConfig.swift", "requirePairing: true, shareClipboard: true)", "requirePairing: true, shareClipboard: false)"),
     ("AQ18 the clipboard's change unnamed", H + "HostConfig.swift", '        if shareClipboard != new.shareClipboard { parts.append("share clipboard \\(onOff(shareClipboard)) → \\(onOff(new.shareClipboard))") }\n', ""),
     ("AQ19 the clipboard's switch never stored", H + "HostConfig.swift", "        self.shareClipboard = shareClipboard\n", "        self.shareClipboard = true\n"),
+    ("AQ20 standard lets the display sleep", H + "HostConfig.swift", "requirePairing: true, shareClipboard: true, keepDisplayAwake: true)", "requirePairing: true, shareClipboard: true, keepDisplayAwake: false)"),
+    ("AQ21 the display switch's change unnamed", H + "HostConfig.swift", '        if keepDisplayAwake != new.keepDisplayAwake { parts.append("keep display awake \\(onOff(keepDisplayAwake)) → \\(onOff(new.keepDisplayAwake))") }\n', ""),
+    ("AQ22 the display switch never stored", H + "HostConfig.swift", "        self.keepDisplayAwake = keepDisplayAwake\n", "        self.keepDisplayAwake = true\n"),
 ]
 caught = 0
 for name, rel, old, new in MUTANTS:

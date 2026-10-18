@@ -141,6 +141,14 @@ private struct GeneralPane: View {
             } footer: {
                 Footnote("Lets your iPhone and iPad connect when they’re near this Mac, even without a shared Wi\u{2011}Fi network, the way AirDrop does. While it’s on, this Mac’s Wi\u{2011}Fi keeps stepping away from your network, so streaming over Wi\u{2011}Fi can stutter. Anyone nearby with Sill can find this Mac; only devices you paired can connect, unless Require pairing is off.")
             }
+            // The display (DisplayPower, docs/display-sleep-plan.md): at once, no restart. A sleeping
+            // display streams black, so while a device is connected it is held awake, and woken when one
+            // connects. Enabled in test pattern mode too, where it is saved and touches nothing.
+            Section {
+                Toggle("Keep the display awake while a device is connected", isOn: $settings.config.keepDisplayAwake)
+            } footer: {
+                Footnote("Streaming needs this Mac’s display on: once it goes to sleep, your iPhone or iPad sees only black. While this is on, the display stays awake as long as a device is connected, and wakes when one connects. If this Mac asks for its password after the display sleeps, unlock it here first.")
+            }
             // The clipboard both ways (HostClipboard): at once, no restart. Each device has its own
             // switch too. macOS's answer is read with the permissions (once a second while this pane
             // shows, and when Sill becomes active), never in a preview.

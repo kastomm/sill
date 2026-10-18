@@ -1,0 +1,6 @@
+# Compiled as one module by ../module.py with main.swift: the display's rule and the IOKit side
+# (never called here: the check only reads the rule and the words), with SessionLock, which the wake
+# line asks. `package` access needs the package name.
+flags: -package-name sill
+Sources/SillHost/DisplayPower.swift
+Sources/SillHost/SessionLock.swift

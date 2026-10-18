@@ -378,9 +378,10 @@ final class AppModel {
     /// 2026-09-22 stutter would be back. So while a device is connected Sill holds a
     /// latency-critical activity, which still lets the Mac sleep when idle: a device at home can
     /// wake it (Bonjour Sleep Proxy) or walk over. A device connected from away cannot, so while
-    /// one is, the activity is `.userInitiated`, which also keeps the Mac from idle sleep (the
-    /// display may still sleep; docs/remote-access-plan.md §6.5). Switching ends one activity and
-    /// begins the other.
+    /// one is, the activity is `.userInitiated`, which also keeps the Mac from idle sleep
+    /// (docs/remote-access-plan.md §6.5). The display is the coordinator's `DisplayPower`: held
+    /// awake while any device is connected and Keep display awake is on, which keeps the Mac from
+    /// idle sleep too (docs/display-sleep-plan.md). Switching ends one activity and begins the other.
     private func holdAppNapOff(devices: Int, remote: Int) {
         let want: NapHold = remote > 0 ? .remote : (devices > 0 ? .connected : .none)
         guard want != napHold else { return }

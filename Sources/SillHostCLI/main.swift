@@ -40,6 +40,11 @@ config.directWireless = CommandLine.arguments.contains("--direct-wireless")
 // A --synthetic host shares a pasteboard of its own, never this Mac's clipboard.
 config.shareClipboard = !CommandLine.arguments.contains("--no-clipboard")
 
+// `SillHost --let-display-sleep`: do not hold this Mac's display awake while a device is connected,
+// and do not wake it when one connects (docs/display-sleep-plan.md). On by default, as in Sill.app:
+// a sleeping display streams black. A --synthetic host never touches the display either way.
+config.keepDisplayAwake = !CommandLine.arguments.contains("--let-display-sleep")
+
 // `SillHost --remote[=PORT]`: the remote door for this run (TLS 1.3, paired devices only), on
 // PORT or any free port, so it never collides with Sill.app's 7455. A new in-memory identity and
 // trust list every run. A pairing window is always open (a fresh one after each use or expiry);

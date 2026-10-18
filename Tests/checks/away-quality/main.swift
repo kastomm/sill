@@ -91,12 +91,29 @@ do {
     check(!off.validated().shareClipboard && standard.validated().shareClipboard, "validated keeps it either way")
     let made = HostConfig(maxFPS: 60, captureScale: 1, bitrate: 8_000_000, awayBitrate: 4_000_000, awayCaptureScale: 1, prioritizeSpeed: false,
                           virtualDisplay: false, directWireless: false, remoteAccess: false, remotePort: 7455, internetAccess: false,
-                          requirePairing: true, shareClipboard: false)
+                          requirePairing: true, shareClipboard: false, keepDisplayAwake: false)
     check(!made.shareClipboard, "a HostConfig made with it off has it off (as Sill.app's settings make one)")
+    check(!made.keepDisplayAwake, "a HostConfig made with Keep display awake off has it off")
     let all = HostSettingsChange(token: 1, maxFPS: 60, bitrate: 25_000_000, captureScale: 1, prioritizeSpeed: true, virtualDisplay: true,
                                  directWireless: true)
     check(!off.applying(all).shareClipboard && !off.applyingAway(all).shareClipboard
           && standard.applying(all).shareClipboard && standard.applyingAway(all).shareClipboard,
+          "a device's change never moves it, at home or away")
+}
+
+// Keep the display awake while a device is connected (docs/display-sleep-plan.md): on in `standard`,
+// named in the log's line, the Mac's alone.
+do {
+    check(standard.keepDisplayAwake, "standard: Keep display awake on")
+    var off = standard
+    off.keepDisplayAwake = false
+    eq(standard.changes(to: off), "keep display awake on → off", "changes: the display's switch")
+    eq(off.changes(to: standard), "keep display awake off → on", "changes: and back")
+    check(!off.validated().keepDisplayAwake && standard.validated().keepDisplayAwake, "validated keeps it either way")
+    let all = HostSettingsChange(token: 1, maxFPS: 60, bitrate: 25_000_000, captureScale: 1, prioritizeSpeed: true, virtualDisplay: true,
+                                 directWireless: true)
+    check(!off.applying(all).keepDisplayAwake && !off.applyingAway(all).keepDisplayAwake
+          && standard.applying(all).keepDisplayAwake && standard.applyingAway(all).keepDisplayAwake,
           "a device's change never moves it, at home or away")
 }
 
