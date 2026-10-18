@@ -1700,8 +1700,12 @@ struct HoldDragOverlay: UIViewRepresentable {
         let hold = UILongPressGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.held(_:)))
         hold.minimumPressDuration = minimumHold
         hold.allowableMovement = 12        // more than this before the hold fires is a scroll, not a hold
-        // A pointer's secondary button alone: the plain tap above keeps its primary one.
+        // A pointer's secondary button alone (a trackpad's two-finger click, a mouse's right
+        // button): pointer touches only, since a finger has no buttons and `buttonMaskRequired`
+        // alone did not keep a plain tap out (2026-10-17: every tap opened the menu); the plain tap
+        // above keeps the primary button and the fingers.
         let secondary = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.secondaryClicked(_:)))
+        secondary.allowedTouchTypes = [NSNumber(value: UITouch.TouchType.indirectPointer.rawValue)]
         secondary.buttonMaskRequired = .secondary
         view.addGestureRecognizer(tap)
         view.addGestureRecognizer(hold)
