@@ -115,7 +115,7 @@ struct StreamScreen: View {
     @State private var textScale: Double? = nil
     /// The Aa slider is unfolded (finger down): the bars fade their other buttons meanwhile.
     @State private var scaleOpen = false
-    /// The thumbnail whose traffic-light submenu is open (held for 1.5 s). The bars clip their
+    /// The thumbnail whose traffic-light submenu is open (held for 0.5 s). The bars clip their
     /// content, so the submenu is drawn by this root, anchored to the thumbnail's frame.
     @State private var windowMenu: UInt32? = nil
     /// The Settings panel (the Mac's streaming settings) is open. Up here, next to the drawer, so a
@@ -1561,11 +1561,12 @@ struct WindowStrip: View {
     var menusOpened: () -> Void = {}
     var menusClosed: () -> Void = {}
 
-    /// Press and hold a thumbnail for 1.5 s: it starts to wiggle and its traffic lights (close,
-    /// minimize, full screen) appear in a submenu beside it, the way a held Home Screen icon
-    /// offers its menu. Keep holding and move: the submenu goes, the thumbnail lifts and drags
-    /// into a new slot. The arrangement is the device's own, persisted per Mac. A tap selects.
-    static let holdToOpen: TimeInterval = 1.5
+    /// Press and hold a thumbnail for 0.5 s (iOS's own context-menu hold; 1.5 s until 2026-10-18,
+    /// which read as not responding): it starts to wiggle and its traffic lights (close, minimize,
+    /// full screen) appear in a submenu beside it, the way a held Home Screen icon offers its menu.
+    /// Keep holding and move: the submenu goes, the thumbnail lifts and drags into a new slot. The
+    /// arrangement is the device's own, persisted per Mac. A tap selects.
+    static let holdToOpen: TimeInterval = 0.5
     /// What the tour lights of the strip: its thumbnails' band (the strip is as tall as its bar),
     /// with the active halo's 5 pt above and the app badge's 6 pt below.
     static func tourBand(pad: CGFloat) -> EdgeInsets {
