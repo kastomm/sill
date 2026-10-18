@@ -8,6 +8,23 @@ Formerly winstream; the folder still carries the old name.
 
 ## Current step
 
+**The Mac's menus from a secondary click (2026-10-17, on branch `display-sleep`).** Aman: "if you
+right click a window it shows the same menu". Device only. `MacMenuPopup.swift`: `MacMenuContextRule`
+(pure: the picture's top 32 pt, a window's title bar or the Desktop's menu bar, while the Mac sent
+menus and iOS can open one from code) and `MacMenuPopup` (a clear 2 pt `MacMenuTriggerButton` moved
+under the click, `performPrimaryAction`, iOS 17.4; the same `MacMenuElements` as the Menus button,
+and its open and close hooks, so the drawer, the lights and the Settings panel go as for the
+button). InputOverlayView keeps a secondary click in the band from the Mac (`menuClickPending`) and
+opens the pull-down where the button comes up; could it not, the Mac gets the click whole. A
+`UITapGestureRecognizer` with `buttonMaskRequired = .secondary` on `HoldDragOverlay` does the same on
+the streamed window's thumbnail alone (the Mac reads only the streamed app's menus); the plain tap
+and the hold keep their primary button. Anywhere else in the picture a secondary click stays the
+Mac's right-click. pbxproj AE01/FE01. **Unverified: not compiled** (the session's shell has no
+Swift); for Aman with the Magic Keyboard: a two-finger click on a title bar (the pull-down there,
+nothing on the Mac), lower in the window (the Mac's contextual menu as before), on the streamed
+window's thumbnail (the pull-down) and on another thumbnail (nothing); Esc and a click outside close
+it; the Settings panel and the lights go when it opens.
+
 **The Mac's display while a device is connected (2026-10-17, branch `display-sleep` from main at
 5c323e6; docs/display-sleep-plan.md has the plan, its open questions with the default taken, and
 Aman's tests).** Aman: "when the screen goes black on the Mac (display shuts off) then the Sill app

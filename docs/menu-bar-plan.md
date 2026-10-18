@@ -1158,6 +1158,7 @@ is connected.
 | `MacMenuHub.swift` (new; UIKit) | Which session the bar shows (the app's one window's); rebuilds (§7.4) |
 | `SillAppDelegate.swift` (new; UIKit) | `buildMenu(with:)` (§7.4) |
 | `MacMenuButton.swift` (new; SwiftUI and UIKit) | The bar's Menus button and its UIKit trigger (§7.5) |
+| `MacMenuPopup.swift` (2026-10-17; UIKit) | A secondary click's way to the same pull-down: on the streamed window's thumbnail, and in the picture's top 32 pt (a title bar, the Desktop's menu bar; `MacMenuContextRule`, pure), the Menus button's trigger moved under the click and asked for its primary action (iOS 17.4); elsewhere in the picture a secondary click stays the Mac's right-click |
 | `SillApp.swift` | `@UIApplicationDelegateAdaptor(SillAppDelegate.self) var appDelegate` |
 | `StreamClient.swift` | The subscription, kind 24, `fetchMenu`, `pressMenuItem`, the timeout, tear-down (§7.6) |
 | `StreamScreen.swift`, `PortraitStreamScreen.swift` | The button in `TopBar` and `windowBar` (§7.5) |

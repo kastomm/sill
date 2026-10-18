@@ -605,6 +605,13 @@ reads nothing for it. An app that draws its menus in its own window (Blender's
 File and Edit) has there only what its menu bar lists; tap the rest in the
 picture.
 
+A secondary click (a trackpad's two-finger click, a mouse's right button) opens
+the same pull-down where the click landed, on the thumbnail of the window being
+streamed and in the top 32 pt of the picture (a window's title bar, the
+Desktop's menu bar); anywhere else in the picture it stays the Mac's own
+right-click (`MacMenuPopup.swift`, `MacMenuContextRule`; iOS 17.4 and later,
+`performPrimaryAction`).
+
 ## Direct Wireless Connection
 
 Direct Wireless Connection (Settings › General, and the status menu) lets an

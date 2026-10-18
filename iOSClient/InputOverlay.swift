@@ -467,6 +467,10 @@ final class InputOverlayView: UIView, UIKeyInput, UIGestureRecognizerDelegate {
     }
     /// Which button the current pointer press holds down, so the up matches the down.
     private var pointerButtonIsSecondary = false
+    /// The Mac's menus from a secondary click in the picture's top band (MacMenuPopup): the click
+    /// is kept from the Mac, and the pull-down opens where the button comes up.
+    let menuPopup = MacMenuPopup()
+    private var menuClickPending = false
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         // Any new touch stops a coasting flick, the way touching a moving list does on iOS (and
@@ -478,8 +482,15 @@ final class InputOverlayView: UIView, UIKeyInput, UIGestureRecognizerDelegate {
         let point = touch.location(in: self)
         guard let at = sendPointer(.move, at: point, clamped: false) else { return }
         ownPointer(at, for: touch)
-        // A trackpad's secondary click (two fingers, or right button) is a right click on the Mac.
+        // A trackpad's secondary click (two fingers, or right button) is a right click on the Mac,
+        // except in the top band (a window's title bar, the Desktop's menu bar), where it opens the
+        // Mac's menus here instead (MacMenuContextRule), when the Mac sent any.
         pointerButtonIsSecondary = touch.type == .indirectPointer && (event?.buttonMask.contains(.secondary) ?? false)
+        if pointerButtonIsSecondary, MacMenuContextRule.opensMenus(at: point, in: bounds.size, hasMenus: menuPopup.canPresent) {
+            menuPopup.attach(to: self)
+            menuClickPending = true
+            return
+        }
         sendPointer(pointerButtonIsSecondary ? .rightDown : .leftDown, at: point, clamped: false)
     }
 
@@ -495,6 +506,18 @@ final class InputOverlayView: UIView, UIKeyInput, UIGestureRecognizerDelegate {
         guard let touch = Self.pointerTouch(in: touches) else {
             super.touchesEnded(touches, with: event); return
         }
+        if menuClickPending {
+            // The button came up: the pull-down opens where the click landed. Could it not (the
+            // menus went meanwhile), the Mac gets the click whole, down and up, as before.
+            menuClickPending = false
+            pointerButtonIsSecondary = false
+            let point = touch.location(in: self)
+            if !menuPopup.present(at: point) {
+                sendPointer(.rightDown, at: point, clamped: true)
+                sendPointer(.rightUp, at: point, clamped: true)
+            }
+            return
+        }
         if let at = sendPointer(pointerButtonIsSecondary ? .rightUp : .leftUp, at: touch.location(in: self), clamped: true) { ownPointer(at, for: touch) }
         pointerButtonIsSecondary = false
     }
@@ -503,6 +526,7 @@ final class InputOverlayView: UIView, UIKeyInput, UIGestureRecognizerDelegate {
         guard let touch = Self.pointerTouch(in: touches) else {
             super.touchesCancelled(touches, with: event); return
         }
+        if menuClickPending { menuClickPending = false; pointerButtonIsSecondary = false; return }   // nothing was sent
         // Never leave the button stuck down.
         if let at = sendPointer(pointerButtonIsSecondary ? .rightUp : .leftUp, at: touch.location(in: self), clamped: true) { ownPointer(at, for: touch) }
         pointerButtonIsSecondary = false
@@ -938,6 +962,11 @@ struct InputOverlay: UIViewRepresentable {
     var onModifiersConsumed: () -> Void = {}
     /// `StreamClient.sendGesture`; see `InputOverlayView.sendGesture`.
     var sendGesture: (TrackpadGestures.Gesture, Int) -> Bool = { _, _ in false }
+    /// The Mac's menus from a secondary click in the picture's top band (MacMenuPopup): the client
+    /// whose menus, and the screen's hooks for the pull-down showing and going (the Menus button's).
+    var menusClient: StreamClient? = nil
+    var menusOpened: () -> Void = {}
+    var menusClosed: () -> Void = {}
 
     func makeUIView(context: Context) -> InputOverlayView {
         let view = InputOverlayView(frame: .zero)
@@ -955,6 +984,9 @@ struct InputOverlay: UIViewRepresentable {
         // Called straight from a UIKit text-input callback, never from inside a SwiftUI update,
         // so writing the binding here needs no hop.
         uiView.onModifiersConsumed = onModifiersConsumed
+        uiView.menuPopup.client = menusClient
+        uiView.menuPopup.onOpen = menusOpened
+        uiView.menuPopup.onClose = menusClosed
         proxy.onOwnChange = { shown in
             // Hops to the next runloop turn: resigning can happen inside a SwiftUI update
             // (a teardown, say), and writing the binding there is a "modifying state during

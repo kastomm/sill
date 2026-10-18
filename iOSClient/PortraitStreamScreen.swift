@@ -463,7 +463,8 @@ struct PortraitStreamScreen: View {
                          isKeyboardShown: $keyboardShown,
                          latchedModifiers: latched,
                          onModifiersConsumed: { latched = [] },
-                         sendGesture: { client.sendGesture($0, fingers: $1) })
+                         sendGesture: { client.sendGesture($0, fingers: $1) },
+                         menusClient: client, menusOpened: menusOpened, menusClosed: menusClosed)
         }
         .background(Palette.panel)
         .overlay(alignment: .top) { LinkLineView(text: linkLine) }
@@ -477,7 +478,7 @@ struct PortraitStreamScreen: View {
         WindowStrip(client: client, width: metrics.thumbWidth, height: metrics.thumbHeight,
                     radius: metrics.thumbRadius, spacing: metrics.thumbSpacing,
                     pad: metrics.thumbPad, fade: metrics.thumbFade, badge: metrics.badge,
-                    menuFor: $windowMenu)
+                    menuFor: $windowMenu, menusOpened: menusOpened, menusClosed: menusClosed)
             .tourTarget(.strip, inset: WindowStrip.tourBand(pad: metrics.thumbPad))
     }
 

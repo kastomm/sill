@@ -1075,7 +1075,8 @@ struct StreamScreen: View {
                              isKeyboardShown: $keyboardShown,
                              latchedModifiers: latched,
                              onModifiersConsumed: { latched = [] },
-                             sendGesture: { client.sendGesture($0, fingers: $1) })
+                             sendGesture: { client.sendGesture($0, fingers: $1) },
+                             menusClient: client, menusOpened: menusOpened, menusClosed: menusClosed)
             }
             .background(Palette.panel)
             .overlay(alignment: .top) { LinkLineView(text: shownLinkLine) }
@@ -1246,7 +1247,8 @@ private struct TopBar: View {
 
             WindowStrip(client: client, width: metrics.thumbWidth, height: metrics.thumbHeight,
                         radius: metrics.thumbRadius, spacing: metrics.thumbSpacing,
-                        pad: metrics.thumbPad, fade: metrics.thumbFade, menuFor: $windowMenu)
+                        pad: metrics.thumbPad, fade: metrics.thumbFade, menuFor: $windowMenu,
+                        menusOpened: menusOpened, menusClosed: menusClosed)
                 .opacity(scaleOpen ? 0.2 : 1)      // the ruler is centred on Aa and reaches over the strip's end
                 .allowsHitTesting(!scaleOpen)
                 .frame(width: stripWidth)
@@ -1552,6 +1554,11 @@ struct WindowStrip: View {
     /// Which thumbnail has its traffic-light submenu open. Owned by the screen root, which draws
     /// the submenu outside this clipped strip.
     @Binding var menuFor: UInt32?
+    /// A secondary click (a trackpad's two-finger click, a mouse's right button) on the streamed
+    /// window's thumbnail opens the Mac's menus there, as the Menus button does (MacMenuPopup); the
+    /// screen's hooks for the pull-down showing and going.
+    var menusOpened: () -> Void = {}
+    var menusClosed: () -> Void = {}
 
     /// Press and hold a thumbnail for 1.5 s: it starts to wiggle and its traffic lights (close,
     /// minimize, full screen) appear in a submenu beside it, the way a held Home Screen icon
@@ -1591,7 +1598,10 @@ struct WindowStrip: View {
                                             onTap: { if menuFor != nil { closeMenu() } else { client.select(.window(window.id)) } },
                                             onHold: { openMenu(for: window.id) },
                                             onMove: { t in holdMoved(window: window, index: index, count: windows.count, slot: slot, translation: t) },
-                                            onEnd: { holdEnded(window: window) })
+                                            onEnd: { holdEnded(window: window) },
+                                            menusClient: client.active == .window(window.id) ? client : nil,
+                                            menusOpened: { closeMenu(); menusOpened() },
+                                            menusClosed: menusClosed)
                         }
                         .offset(x: lifted == window.id ? liftOffset : 0)
                         .zIndex(lifted == window.id ? 1 : 0)
@@ -1676,6 +1686,11 @@ struct HoldDragOverlay: UIViewRepresentable {
     /// Translation since the hold began, in window coordinates (stable while the view moves).
     var onMove: (CGSize) -> Void
     var onEnd: () -> Void
+    /// A secondary click opens the Mac's menus here (MacMenuPopup), for the streamed window's
+    /// thumbnail: nil for any other (the Mac reads only the streamed app's menus).
+    var menusClient: StreamClient? = nil
+    var menusOpened: () -> Void = {}
+    var menusClosed: () -> Void = {}
 
     func makeUIView(context: Context) -> UIView {
         let view = UIView()
@@ -1684,20 +1699,38 @@ struct HoldDragOverlay: UIViewRepresentable {
         let hold = UILongPressGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.held(_:)))
         hold.minimumPressDuration = minimumHold
         hold.allowableMovement = 12        // more than this before the hold fires is a scroll, not a hold
+        // A pointer's secondary button alone: the plain tap above keeps its primary one.
+        let secondary = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.secondaryClicked(_:)))
+        secondary.buttonMaskRequired = .secondary
         view.addGestureRecognizer(tap)
         view.addGestureRecognizer(hold)
+        view.addGestureRecognizer(secondary)
+        context.coordinator.popup.attach(to: view)
         return view
     }
 
-    func updateUIView(_ view: UIView, context: Context) { context.coordinator.parent = self }
+    func updateUIView(_ view: UIView, context: Context) {
+        context.coordinator.parent = self
+        context.coordinator.popup.client = menusClient
+        context.coordinator.popup.onOpen = menusOpened
+        context.coordinator.popup.onClose = menusClosed
+    }
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
     final class Coordinator: NSObject {
         var parent: HoldDragOverlay
+        let popup = MacMenuPopup()
         private var start = CGPoint.zero
         init(_ parent: HoldDragOverlay) { self.parent = parent }
 
         @objc func tapped() { parent.onTap() }
+
+        /// The streamed window's thumbnail: its app's menus where the click landed. Any other
+        /// thumbnail, or before iOS 17.4: nothing (a tap selects, a hold shows the lights).
+        @objc func secondaryClicked(_ g: UITapGestureRecognizer) {
+            guard parent.menusClient != nil, let view = g.view else { return }
+            popup.present(at: g.location(in: view))
+        }
 
         @objc func held(_ g: UILongPressGestureRecognizer) {
             let p = g.location(in: g.view?.window)

@@ -54,6 +54,7 @@
 		A1000001000000000000AC01 /* HardwareKeyboardPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001000000000000FC01 /* HardwareKeyboardPolicy.swift */; };
 		A1000001000000000000AC64 /* StreamClient+Clipboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001000000000000FC64 /* StreamClient+Clipboard.swift */; };
 		A1000001000000000000AD64 /* ClipboardChip.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001000000000000FD64 /* ClipboardChip.swift */; };
+		A1000001000000000000AE01 /* MacMenuPopup.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001000000000000FE01 /* MacMenuPopup.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -106,6 +107,7 @@
 		A1000001000000000000FC01 /* HardwareKeyboardPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareKeyboardPolicy.swift; sourceTree = "<group>"; };
 		A1000001000000000000FC64 /* StreamClient+Clipboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StreamClient+Clipboard.swift"; sourceTree = "<group>"; };
 		A1000001000000000000FD64 /* ClipboardChip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardChip.swift; sourceTree = "<group>"; };
+		A1000001000000000000FE01 /* MacMenuPopup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacMenuPopup.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -136,6 +138,7 @@
 				A1000001000000000000F013 /* HostSettingsPanel.swift */,
 				A1000001000000000000FC64 /* StreamClient+Clipboard.swift */,
 				A1000001000000000000FD64 /* ClipboardChip.swift */,
+				A1000001000000000000FE01 /* MacMenuPopup.swift */,
 				A1000001000000000000F402 /* TourOverlay.swift */,
 				A1000001000000000000F401 /* TourPolicy.swift */,
 				A1000001000000000000FB01 /* DuoPosture.swift */,
@@ -280,6 +283,7 @@
 				A1000001000000000000A013 /* HostSettingsPanel.swift in Sources */,
 				A1000001000000000000AC64 /* StreamClient+Clipboard.swift in Sources */,
 				A1000001000000000000AD64 /* ClipboardChip.swift in Sources */,
+				A1000001000000000000AE01 /* MacMenuPopup.swift in Sources */,
 				A1000001000000000000A402 /* TourOverlay.swift in Sources */,
 				A1000001000000000000A401 /* TourPolicy.swift in Sources */,
 				A1000001000000000000AB01 /* DuoPosture.swift in Sources */,
