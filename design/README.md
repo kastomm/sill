@@ -1,8 +1,14 @@
 # Design sources
 
 - `AppIcon.svg` — the app icon on the 1024 grid, full square (iOS applies the
-  squircle). Four groups map to Icon Composer layers: background, iMac, iPad,
-  window. Render the asset with:
+  squircle). Since 2026-10-17: a Mac's display behind an iPad, the same window
+  on both screens, and the stream drawn as two arrows looping around the pair
+  (to the device over the top, the touches back underneath), on black with a
+  violet-to-orange sweep. Four groups map to Icon Composer layers: background,
+  mac, ipad, arrows. The iOS catalog's `AppIcon.png` is its 1024 render,
+  flattened on black. The menu bar glyph (StatusGlyph.swift) and the disk
+  image's arrow still draw the earlier icon's iMac-and-iPad silhouette and
+  greys; they wait for a matching redraw. Render the asset with:
 
   ```
   qlmanage -t -s 1024 -o . design/AppIcon.svg   # then flatten alpha before adding to the catalog

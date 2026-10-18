@@ -1,48 +1,131 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024"><defs>
-<linearGradient id="i-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a1a1c"></stop><stop offset="1" stop-color="#000000"></stop></linearGradient>
-<linearGradient id="i-gloss" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.6"></stop><stop offset="0.4" stop-color="#ffffff" stop-opacity="0.1"></stop><stop offset="1" stop-color="#ffffff" stop-opacity="0"></stop></linearGradient>
-<linearGradient id="i-grey" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c7e86" stop-opacity="0.98"></stop><stop offset="1" stop-color="#4c4e56" stop-opacity="0.96"></stop></linearGradient>
-<filter id="i-blur" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="26"></feGaussianBlur></filter>
-<filter id="i-lift" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="10" stdDeviation="8" flood-color="#000000" flood-opacity="0.35"></feDropShadow></filter>
-<filter id="i-back" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000000" flood-opacity="0.3"></feDropShadow></filter>
-<clipPath id="i-clip"><rect x="0" y="0" width="1024" height="1024" rx="229"></rect></clipPath>
-<clipPath id="i-imacclip"><rect x="176" y="176" width="672" height="456" rx="60"></rect></clipPath>
-<clipPath id="i-ipadclip"><rect x="316" y="240" width="408" height="300" rx="48"></rect></clipPath>
+<!-- Sill's app icon (2026-10-17): a Mac's display and an iPad in front of it, the stream between them drawn as two
+     arrows that loop around the pair (the Mac's picture to the device, the device's touches back).
+     1024 grid, full square (iOS applies the squircle; macOS 26+ masks and lights it). Four groups
+     for Icon Composer's layers: background, mac, ipad, arrows. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" xmlns:c2pa="http://c2pa.org/manifest"><metadata><c2pa:manifest>AAAWgmp1bWIAAAAeanVtZGMycGEAEQAQgAAAqgA4m3EDYzJwYQAAABZcanVtYgAAAEdqdW1kYzJtYQARABCAAACqADibcQN1cm46YzJwYTpmNDZjMWQzNS01MDYwLTRjZDUtYTQ1My1lNzEzZDM1NzJiYTgAAAADl2p1bWIAAAApanVtZGMyYXMAEQAQgAAAqgA4m3EDYzJwYS5hc3NlcnRpb25zAAAAALxqdW1iAAAARGp1bWRjYm9yABEAEIAAAKoAOJtxE2MycGEuaW5ncmVkaWVudC52MwAAAAAYYzJzaJP7PwBF/CaaToQxgSGZe/YAAABwY2JvcqNpZGM6Zm9ybWF0bWltYWdlL3N2Zyt4bWxqaW5zdGFuY2VJRHgseG1wOmlpZDo2YjE0YTgwNC00NzVkLTRhZGYtOWNjNC1hZjRlZGU5MTE2MDJscmVsYXRpb25zaGlwaHBhcmVudE9mAAAB4mp1bWIAAABBanVtZGNib3IAEQAQgAAAqgA4m3ETYzJwYS5hY3Rpb25zLnYyAAAAABhjMnNoBJMZ7deQyApjSIr0Cqv05AAAAZljYm9yomdhY3Rpb25zgqJmYWN0aW9ua2MycGEub3BlbmVkanBhcmFtZXRlcnOha2luZ3JlZGllbnRzgaJjdXJseC1zZWxmI2p1bWJmPWMycGEuYXNzZXJ0aW9ucy9jMnBhLmluZ3JlZGllbnQudjNkaGFzaFgg5eA8stMxolqQEzU65jWNu56uhHTAn9iaTPSMW709jMGkZmFjdGlvbngdY29tLmFudGhyb3BpYy5jbGF1ZGUucHJvdmlkZWRqcGFyYW1ldGVyc6F4H2NvbS5hbnRocm9waWMub3JpZ2luLWNvbmZpZGVuY2VndW5rbm93bmtkZXNjcmlwdGlvbnhmQ2xhdWRlIHByb3ZpZGVkIHRoaXMgZmlsZSBhdCB0aGUgcmVxdWVzdCBvZiBhIHVzZXIgYW5kIG1heSBoYXZlIGNyZWF0ZWQgb3IgbW9kaWZpZWQgdGhlIGZpbGUgY29udGVudHMubXNvZnR3YXJlQWdlbnShZG5hbWVmQ2xhdWRlcmFsbEFjdGlvbnNJbmNsdWRlZPUAAADIanVtYgAAAEBqdW1kY2JvcgARABCAAACqADibcRNjMnBhLmhhc2guZGF0YQAAAAAYYzJzaEXqZ8hF50R6LfPkAZ+xPIIAAACAY2JvcqVjYWxnZnNoYTI1NmNwYWRMAAAAAAAAAAAAAAAAZGhhc2hYIMQn3AbvckUoii1Rp6Gui7KgY9huxXKxchgNCZRh1kIjZG5hbWVuanVtYmYgbWFuaWZlc3RqZXhjbHVzaW9uc4GiZXN0YXJ0GQJAZmxlbmd0aBkeBAAAAj5qdW1iAAAAJ2p1bWRjMmNsABEAEIAAAKoAOJtxA2MycGEuY2xhaW0udjIAAAACD2Nib3KlY2FsZ2ZzaGEyNTZpc2lnbmF0dXJleE1zZWxmI2p1bWJmPS9jMnBhL3VybjpjMnBhOmY0NmMxZDM1LTUwNjAtNGNkNS1hNDUzLWU3MTNkMzU3MmJhOC9jMnBhLnNpZ25hdHVyZWppbnN0YW5jZUlEeCx4bXA6aWlkOmM4ZmZhOTU2LWVhYTAtNGQ1NC05MDk2LTEzZDExOGM0YTk0ZHJjcmVhdGVkX2Fzc2VydGlvbnODomN1cmx4LXNlbGYjanVtYmY9YzJwYS5hc3NlcnRpb25zL2MycGEuaW5ncmVkaWVudC52M2RoYXNoWCDl4Dyy0zGiWpATNTrmNY27nq6EdMCf2JpM9IxbvT2MwaJjdXJseCpzZWxmI2p1bWJmPWMycGEuYXNzZXJ0aW9ucy9jMnBhLmFjdGlvbnMudjJkaGFzaFggnDAER/mM8ADYbWCybUcdHkEogZ5Ox2JErqOO1J68KbSiY3VybHgpc2VsZiNqdW1iZj1jMnBhLmFzc2VydGlvbnMvYzJwYS5oYXNoLmRhdGFkaGFzaFggCXYCqqA9BuI5o8KkUkX8RrbLOsUtrmsCO71qd34u2Sx0Y2xhaW1fZ2VuZXJhdG9yX2luZm+jZG5hbWVvQW50aHJvcGljIEZpbGVzZ3ZlcnNpb25lMS4wLjBrc3BlY1ZlcnNpb25lMi40LjAAABA4anVtYgAAAChqdW1kYzJjcwARABCAAACqADibcQNjMnBhLnNpZ25hdHVyZQAAABAIY2JvctKEWQISogEmGCFZAgowggIGMIIBjaADAgECAhRA5aAK7sI50L64g/oGQgU9Z1UTADAKBggqhkjOPQQDAzBJMRcwFQYDVQQKEw5BbnRocm9waWMsIFBCQzEuMCwGA1UEAxMlQW50aHJvcGljIENvbnRlbnQgQ3JlZGVudGlhbHMgUm9vdCBDQTAeFw0yNjA4MDcxODQzNTZaFw0yODA4MDYxOTQzNTZaMEQxFzAVBgNVBAoTDkFudGhyb3BpYywgUEJDMSkwJwYDVQQDEyBBbnRocm9waWMgQ2xhdWRlIENvbnRlbnQgU2lnbmluZzBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABJh6CmvLUBgFFNU0vUKlOVtE6djd17L5SuwX0LemFisBM3dkd/3cyjxFA3Qo5S46fX0/ihY0VZ7mfb9KF703t5OjWDBWMA4GA1UdDwEB/wQEAwIHgDAVBgNVHSUEDjAMBgorBgEEAYPoXgIBMAwGA1UdEwEB/wQCMAAwHwYDVR0jBBgwFoAUzlHiBIFOZFsj+OPEz5o+nMHXXMIwCgYIKoZIzj0EAwMDZwAwZAIwMXMdFJ4BetLLVY7ORuE9noqbbAZOZn/aArXyTwFAZfKrPzxF2vPoJNf1+UCdg1XGAjBwX1zd9WGqYkqmL5SFqw1QySjr1zJfpJM9+1rdDwSPLMOPOjKuiXjoU/pUUeG9RwmhY3BhZFkNngAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPZYQNIHq2L99ayYuGf4IHDVpWQIudy49VIpbU9vo608VRPpQqRfKCPj15vYXnb3SjwLPotyrO6Txo1xhcVajXHIXZM=</c2pa:manifest></metadata>
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#111114"/>
+    <stop offset="1" stop-color="#000000"/>
+  </linearGradient>
+  <radialGradient id="glow" cx="0.5" cy="0.48" r="0.62">
+    <stop offset="0" stop-color="#7a5cff" stop-opacity="0.32"/>
+    <stop offset="0.55" stop-color="#ff5fa2" stop-opacity="0.06"/>
+    <stop offset="1" stop-color="#000000" stop-opacity="0"/>
+  </radialGradient>
+  <linearGradient id="metal" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#3a3d4a"/>
+    <stop offset="1" stop-color="#22242d"/>
+  </linearGradient>
+  <linearGradient id="metalDark" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#2b2e3a"/>
+    <stop offset="1" stop-color="#15171f"/>
+  </linearGradient>
+  <linearGradient id="screenMac" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#5b4bff"/>
+    <stop offset="0.35" stop-color="#9b4dff"/>
+    <stop offset="0.7" stop-color="#ff4f9a"/>
+    <stop offset="1" stop-color="#ff8a3d"/>
+  </linearGradient>
+  <linearGradient id="screenPad" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#5b4bff"/>
+    <stop offset="0.35" stop-color="#9b4dff"/>
+    <stop offset="0.7" stop-color="#ff4f9a"/>
+    <stop offset="1" stop-color="#ff8a3d"/>
+  </linearGradient>
+  <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#ffffff" stop-opacity="0.45"/>
+    <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.05"/>
+    <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+  </linearGradient>
+  <linearGradient id="arrowA" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#5b4bff" stop-opacity="0.1"/>
+    <stop offset="0.5" stop-color="#9b4dff"/>
+    <stop offset="1" stop-color="#ff4f9a"/>
+  </linearGradient>
+  <linearGradient id="arrowB" x1="1" y1="0" x2="0" y2="0">
+    <stop offset="0" stop-color="#ff8a3d" stop-opacity="0.1"/>
+    <stop offset="0.5" stop-color="#ff4f9a"/>
+    <stop offset="1" stop-color="#9b4dff"/>
+  </linearGradient>
+  <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+    <feDropShadow dx="0" dy="14" stdDeviation="14" flood-color="#000000" flood-opacity="0.45"/>
+  </filter>
+  <filter id="soft" x="-20%" y="-20%" width="140%" height="150%">
+    <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000000" flood-opacity="0.35"/>
+  </filter>
+  <filter id="arrowGlow" x="-20%" y="-40%" width="140%" height="180%">
+    <feGaussianBlur stdDeviation="10" result="b"/>
+    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <clipPath id="macScreen"><rect x="248" y="226" width="540" height="340" rx="22"/></clipPath>
+  <clipPath id="padScreen"><rect x="386" y="470" width="368" height="276" rx="18"/></clipPath>
 </defs>
-<g>
-<!-- layer 1: background -->
-<rect x="0" y="0" width="1024" height="1024" fill="url(#i-bg)"></rect>
-<g transform="translate(0 56)">
-<!-- layer 2: iMac, space grey glass sitting back -->
-<g filter="url(#i-back)">
-<rect x="372" y="672" width="280" height="40" rx="20" fill="url(#i-grey)"></rect>
-<rect x="480" y="630" width="64" height="50" fill="url(#i-grey)"></rect>
-<rect x="176" y="176" width="672" height="456" rx="60" fill="url(#i-grey)"></rect>
+
+<!-- background -->
+<g id="background">
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <rect width="1024" height="1024" fill="url(#glow)"/>
+  <!-- faint grid of dots, the network -->
+  <g fill="#ffffff" fill-opacity="0.05">
+    <circle cx="112" cy="112" r="5"/><circle cx="912" cy="112" r="5"/>
+    <circle cx="112" cy="912" r="5"/><circle cx="912" cy="912" r="5"/>
+    <circle cx="512" cy="88" r="4"/><circle cx="512" cy="936" r="4"/>
+    <circle cx="88" cy="512" r="4"/><circle cx="936" cy="512" r="4"/>
+  </g>
 </g>
-<rect x="204" y="204" width="616" height="352" rx="36" fill="#07080a" fill-opacity="0.97"></rect>
-<rect x="176" y="176" width="672" height="456" rx="60" fill="url(#i-gloss)" clip-path="url(#i-imacclip)" opacity="0.5"></rect>
-<rect x="177.5" y="177.5" width="669" height="453" rx="59" fill="none" stroke="#ffffff" stroke-opacity="0.5" stroke-width="3"></rect>
-<!-- layer 3: iPad, solid slate glass in front, tilted -->
-<g transform="rotate(-5 520 392)">
-<rect x="326" y="272" width="388" height="290" rx="48" fill="#000000" fill-opacity="0.5" filter="url(#i-blur)"></rect>
-<g filter="url(#i-lift)">
-<rect x="316" y="240" width="408" height="300" rx="48" fill="#2a2f3a"></rect>
+
+<!-- mac: a display, behind -->
+<g id="mac" filter="url(#shadow)">
+  <!-- stand -->
+  <path d="M470 616 L554 616 L574 690 L450 690 Z" fill="url(#metalDark)"/>
+  <rect x="404" y="686" width="216" height="22" rx="11" fill="url(#metal)"/>
+  <!-- body -->
+  <rect x="226" y="204" width="584" height="416" rx="40" fill="url(#metal)"/>
+  <rect x="226" y="568" width="584" height="52" rx="0" fill="#1b1d25"/>
+  <rect x="226" y="580" width="584" height="40" rx="40" fill="url(#metal)"/>
+  <!-- screen -->
+  <rect x="248" y="226" width="540" height="340" rx="22" fill="url(#screenMac)"/>
+  <g clip-path="url(#macScreen)">
+    <!-- a window on the Mac's screen: what Sill streams -->
+    <rect x="300" y="286" width="300" height="196" rx="16" fill="#0d1230" fill-opacity="0.55"/>
+    <rect x="300" y="286" width="300" height="34" rx="16" fill="#ffffff" fill-opacity="0.18"/>
+    <circle cx="322" cy="303" r="7" fill="#ff5f57"/><circle cx="346" cy="303" r="7" fill="#febc2e"/><circle cx="370" cy="303" r="7" fill="#28c840"/>
+    <rect x="322" y="340" width="190" height="14" rx="7" fill="#ffffff" fill-opacity="0.5"/>
+    <rect x="322" y="372" width="240" height="14" rx="7" fill="#ffffff" fill-opacity="0.35"/>
+    <rect x="322" y="404" width="150" height="14" rx="7" fill="#ffffff" fill-opacity="0.35"/>
+    <rect x="248" y="226" width="540" height="170" fill="url(#gloss)"/>
+  </g>
 </g>
-<rect x="342" y="266" width="356" height="248" rx="28" fill="#f7f8fa"></rect>
-<circle cx="520" cy="253" r="5" fill="#6b7079"></circle>
-<!-- layer 4: the streamed window inside the iPad -->
-<rect x="368" y="296" width="304" height="180" rx="20" fill="#ffffff"></rect>
-<rect x="368" y="296" width="304" height="40" rx="20" fill="#9bb7ff"></rect>
-<rect x="368" y="316" width="304" height="20" fill="#9bb7ff"></rect>
-<circle cx="394" cy="316" r="7" fill="#ffffff" fill-opacity="0.7"></circle>
-<circle cx="416" cy="316" r="7" fill="#ffffff" fill-opacity="0.5"></circle>
-<circle cx="438" cy="316" r="7" fill="#ffffff" fill-opacity="0.35"></circle>
-<rect x="394" y="362" width="150" height="14" rx="7" fill="#5a5f6b" fill-opacity="0.9"></rect>
-<rect x="394" y="392" width="210" height="14" rx="7" fill="#5a5f6b" fill-opacity="0.55"></rect>
-<rect x="394" y="422" width="110" height="14" rx="7" fill="#5a5f6b" fill-opacity="0.55"></rect>
-<rect x="316" y="240" width="408" height="300" rx="48" fill="url(#i-gloss)" clip-path="url(#i-ipadclip)" opacity="0.8"></rect>
-<rect x="317.5" y="241.5" width="405" height="297" rx="47" fill="none" stroke="#ffffff" stroke-opacity="0.85" stroke-width="3"></rect>
+
+<!-- ipad: in front, lower right, slightly turned -->
+<g id="ipad" transform="translate(34 24) rotate(-6 570 608)" filter="url(#soft)">
+  <rect x="364" y="448" width="412" height="320" rx="34" fill="url(#metalDark)"/>
+  <rect x="364" y="448" width="412" height="320" rx="34" fill="none" stroke="#ffffff" stroke-opacity="0.18" stroke-width="3"/>
+  <rect x="386" y="470" width="368" height="276" rx="18" fill="url(#screenPad)"/>
+  <g clip-path="url(#padScreen)">
+    <!-- the same window, arrived on the device -->
+    <rect x="418" y="506" width="232" height="152" rx="14" fill="#0d1230" fill-opacity="0.55"/>
+    <rect x="418" y="506" width="232" height="28" rx="14" fill="#ffffff" fill-opacity="0.18"/>
+    <circle cx="436" cy="520" r="6" fill="#ff5f57"/><circle cx="456" cy="520" r="6" fill="#febc2e"/><circle cx="476" cy="520" r="6" fill="#28c840"/>
+    <rect x="436" y="550" width="146" height="12" rx="6" fill="#ffffff" fill-opacity="0.5"/>
+    <rect x="436" y="576" width="184" height="12" rx="6" fill="#ffffff" fill-opacity="0.35"/>
+    <rect x="436" y="602" width="116" height="12" rx="6" fill="#ffffff" fill-opacity="0.35"/>
+    <rect x="386" y="470" width="368" height="140" fill="url(#gloss)"/>
+    <!-- a finger's touch ring -->
+    <circle cx="690" cy="690" r="26" fill="none" stroke="#ffffff" stroke-opacity="0.85" stroke-width="8"/>
+    <circle cx="690" cy="690" r="9" fill="#ffffff"/>
+  </g>
 </g>
+
+<!-- arrows: the stream to the device over the top, the touches back under the bottom -->
+<g id="arrows" fill="none" stroke-linecap="round" stroke-linejoin="round" filter="url(#arrowGlow)">
+  <!-- top: Mac -> iPad, a wide arc sweeping right -->
+  <path d="M262 160 C 470 70, 740 70, 888 204" stroke="url(#arrowA)" stroke-width="30"/>
+  <path d="M868 122 L 888 204 L 805 192" stroke="#ff4f9a" stroke-width="30"/>
+  <!-- bottom: iPad -> Mac, sweeping left -->
+  <path d="M762 864 C 554 954, 284 954, 136 820" stroke="url(#arrowB)" stroke-width="30"/>
+  <path d="M156 902 L 136 820 L 219 832" stroke="#9b4dff" stroke-width="30"/>
 </g>
-</g></svg>
+</svg>
