@@ -38,7 +38,9 @@ final class MacMenuPopup {
         trigger.showsMenuAsPrimaryAction = true
         trigger.preferredMenuElementOrder = .fixed      // the Mac's order whichever way it opens (MacMenuTrigger)
         trigger.backgroundColor = .clear
-        trigger.isUserInteractionEnabled = false
+        // Interactive (UIKit presents no menu from a control that is not), 2 pt wide, so it takes
+        // no touch of its own that matters.
+        trigger.isUserInteractionEnabled = true
         trigger.isAccessibilityElement = false
         trigger.frame = CGRect(x: -10, y: -10, width: 2, height: 2)
         trigger.onOpenChange = { [weak self] open in
@@ -58,10 +60,21 @@ final class MacMenuPopup {
     /// (no menus, before iOS 17.4, not on screen): the caller then treats the click as the Mac's.
     @discardableResult
     func present(at point: CGPoint) -> Bool {
-        guard #available(iOS 17.4, *), let client, client.menus.hasMenus, trigger.window != nil else { return false }
+        guard #available(iOS 17.4, *) else { log("not on this iOS (17.4 needed)"); return false }
+        guard let client else { log("no client"); return false }
+        guard client.menus.hasMenus else { log("the Mac sent no menus"); return false }
+        guard trigger.window != nil else { log("the trigger is not on screen"); return false }
         trigger.menu = UIMenu(children: MacMenuElements.topMenus(client, barIdentifiers: false))
         trigger.frame = CGRect(x: point.x - 1, y: point.y - 1, width: 2, height: 2)
+        trigger.superview?.bringSubviewToFront(trigger)
+        log("opening the pull-down at \(Int(point.x)),\(Int(point.y))")
         trigger.performPrimaryAction()
         return true
+    }
+
+    private func log(_ what: String) {
+        #if DEBUG
+        print("menus: secondary click: \(what)")
+        #endif
     }
 }

@@ -486,6 +486,12 @@ final class InputOverlayView: UIView, UIKeyInput, UIGestureRecognizerDelegate {
         // except in the top band (a window's title bar, the Desktop's menu bar), where it opens the
         // Mac's menus here instead (MacMenuContextRule), when the Mac sent any.
         pointerButtonIsSecondary = touch.type == .indirectPointer && (event?.buttonMask.contains(.secondary) ?? false)
+        #if DEBUG
+        if touch.type == .indirectPointer {
+            print("pointer: \(pointerButtonIsSecondary ? "secondary" : "primary") click at \(Int(point.x)),\(Int(point.y)) of \(Int(bounds.width))×\(Int(bounds.height)); "
+                  + "the top band is \(Int(MacMenuContextRule.topBand)) pt; menus \(menuPopup.canPresent ? "available" : "not available")")
+        }
+        #endif
         if pointerButtonIsSecondary, MacMenuContextRule.opensMenus(at: point, in: bounds.size, hasMenus: menuPopup.canPresent) {
             menuPopup.attach(to: self)
             menuClickPending = true

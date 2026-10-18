@@ -1728,6 +1728,9 @@ struct HoldDragOverlay: UIViewRepresentable {
         /// The streamed window's thumbnail: its app's menus where the click landed. Any other
         /// thumbnail, or before iOS 17.4: nothing (a tap selects, a hold shows the lights).
         @objc func secondaryClicked(_ g: UITapGestureRecognizer) {
+            #if DEBUG
+            print("menus: secondary click on a thumbnail" + (parent.menusClient == nil ? " that is not the streamed window's: nothing" : ""))
+            #endif
             guard parent.menusClient != nil, let view = g.view else { return }
             popup.present(at: g.location(in: view))
         }
