@@ -1,0 +1,21 @@
+#!/bin/bash
+# !buildmac: builds Sill.app, the Mac host, from this checkout and reveals it in the Finder.
+#
+#   ./\!buildmac              build .build/Sill.app (signed with your Apple Development identity) and reveal it
+#   ./\!buildmac --install    also replace /Applications/Sill.app and launch it (a running Sill quits first)
+#
+# The exclamation mark needs quoting in the shell: ./\!buildmac or './!buildmac'.
+# Needs Xcode (xcode-select) with its license accepted. The first build takes a few minutes; later ones seconds.
+set -euo pipefail
+cd "$(dirname "$0")"
+echo "== swift build -c release"
+swift build -c release
+echo "== Scripts/make-app.sh"
+if [ "${1:-}" = "--install" ]; then
+    Scripts/make-app.sh --install --open
+    open -R /Applications/Sill.app
+else
+    Scripts/make-app.sh
+    open -R .build/Sill.app
+fi
+echo "Done. The log while it runs: ~/Library/Logs/Sill/Sill.log (tail -F)."

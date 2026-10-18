@@ -21,3 +21,6 @@ design/reel/
 
 # Python's bytecode caches (Tests/checks/module.py, which its checks' mutants.py import).
 __pycache__/
+
+# Local build settings for !buildios (your team and bundle ID): never committed.
+.buildconfig

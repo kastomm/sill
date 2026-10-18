@@ -1,0 +1,46 @@
+#!/bin/bash
+# !buildios: builds the iOS app (iOSClient/Sill.xcodeproj, Debug, for a real iPhone or iPad) from this
+# checkout and reveals the built Sill.app in the Finder. Install it on the device from Xcode (⌘R), or
+# drag the .app onto the device in Xcode › Window › Devices and Simulators.
+#
+#   ./\!buildios                 build with the team and bundle ID below
+#   ./\!buildios --simulator     build for the iOS Simulator instead (no signing needed)
+#
+# Signing: the project is set up for its author's team (9B2KKVM937). To build for your own device, put
+# your team ID and a bundle ID of your own in a file named .buildconfig next to this script (it is
+# git-ignored):
+#     SILL_IOS_TEAM=ABCDE12345
+#     SILL_IOS_BUNDLE_ID=com.yourname.sill
+# Your team ID: Xcode › Settings › Accounts, or https://developer.apple.com/account (Membership details).
+# The exclamation mark needs quoting in the shell: ./\!buildios or './!buildios'.
+# Needs Xcode 27.1 or later (the iOS 27.1 SDK). xcodebuild's full output goes to .build/ios-debug/build.log.
+set -euo pipefail
+cd "$(dirname "$0")"
+[ -f .buildconfig ] && source .buildconfig
+out=.build/ios-debug
+mkdir -p "$out"
+args=(-project iOSClient/Sill.xcodeproj -target Sill -configuration Debug -derivedDataPath "$out" ARCHS=arm64)
+if [ "${1:-}" = "--simulator" ]; then
+    args+=(-sdk iphonesimulator CODE_SIGNING_ALLOWED=NO)
+    products="$out/Build/Products/Debug-iphonesimulator"
+else
+    args+=(-sdk iphoneos -allowProvisioningUpdates)
+    if [ -n "${SILL_IOS_TEAM:-}" ]; then
+        args+=("DEVELOPMENT_TEAM=$SILL_IOS_TEAM")
+        [ -n "${SILL_IOS_BUNDLE_ID:-}" ] && args+=("PRODUCT_BUNDLE_IDENTIFIER=$SILL_IOS_BUNDLE_ID")
+    elif ! security find-identity -v -p codesigning 2>/dev/null | grep -q 9B2KKVM937; then
+        echo "No signing identity for the project's team (9B2KKVM937) on this Mac."
+        echo "Put your own team in .buildconfig (see the top of this script), or use --simulator."
+        exit 2
+    fi
+    products="$out/Build/Products/Debug-iphoneos"
+fi
+echo "== xcodebuild (${args[*]})"
+if ! xcodebuild "${args[@]}" build > "$out/build.log" 2>&1; then
+    grep -E "error:|BUILD FAILED" "$out/build.log" | head -20
+    echo "The whole log: $out/build.log"
+    exit 1
+fi
+grep -E "warning:" "$out/build.log" | sort -u | head -5 || true
+echo "** BUILD SUCCEEDED **  $products/Sill.app"
+open -R "$products/Sill.app"
