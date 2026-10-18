@@ -17,6 +17,11 @@ import SwiftUI
 //
 // DEBUG: the harness's `-SillHinge closed|half|flat` stands in for all of it (ContentView's
 // LayoutHarness): a hinge, and a fold given in the fake display's named space.
+//
+// The hinge APIs are the iOS 27.1 SDK's. Built with the iOS 27.0 SDK (Xcode 27.0), the project sets
+// `SILL_NO_HINGE_SDK` (SWIFT_ACTIVE_COMPILATION_CONDITIONS[sdk=iphoneos27.0*], and the simulator's)
+// and the three uses below compile out: the hinge then reads `unknown` everywhere, as on a device
+// without one. A release for the App Store is built with 27.1 or later (release-ios.sh refuses less).
 
 /// What the app's root knows of the hinge, for the screens below it.
 struct DuoEnvironment: Equatable {
@@ -87,6 +92,7 @@ private struct DuoPostureReader: ViewModifier {
     @State private var hinge: DuoPosture.Hinge = .unknown
 
     func body(content: Content) -> some View {
+        #if !SILL_NO_HINGE_SDK
         if #available(iOS 27.1, *) {
             content
                 .environment(\.duoEnvironment, DuoEnvironment(hinge: hinge))
@@ -101,9 +107,13 @@ private struct DuoPostureReader: ViewModifier {
         } else {
             content
         }
+        #else
+        content
+        #endif
     }
 }
 
+#if !SILL_NO_HINGE_SDK
 @available(iOS 27.1, *)
 extension DuoPosture.Hinge {
     init(_ context: DeviceHingeContext) {
@@ -118,6 +128,7 @@ extension DuoPosture.Hinge {
         }
     }
 }
+#endif
 
 extension DuoPosture {
     /// The posture as the view `geo` measures sees it: the hinge from the environment (before its
@@ -132,12 +143,14 @@ extension DuoPosture {
             let origin = geo.frame(in: .named(displaySpace)).origin
             return DuoPosture(hinge: environment.hinge, fold: fold?.offsetBy(dx: -origin.x, dy: -origin.y))
         case .reservedRegions:
+            #if !SILL_NO_HINGE_SDK
             if #available(iOS 27.1, *) {
                 let region = geo.reservedRegions(kind: .division, options: .includeInactive).first
                 let hinge = hinge(reported: environment.hinge, regionActive: region?.isActive)
                 guard hinge != .unknown else { return .unknown }
                 return DuoPosture(hinge: hinge, fold: region?.frame)
             }
+            #endif
             return .unknown
         }
     }
