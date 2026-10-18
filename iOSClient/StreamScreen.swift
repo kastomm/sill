@@ -313,6 +313,12 @@ struct StreamScreen: View {
             // display gives the picture the status bar's strip in every pose.
             .duoFold(posture, size: geo.size, screen: "stream screen")
             .duoStatusBar(posture, size: geo.size)
+            // The bottom edge is the trackpad's (upright) and the picture's (sideways): iOS holds
+            // every touch that lands near it while it decides whether it is a swipe for the Home
+            // indicator ("System gesture gate timed out" in the console), which lands on exactly the
+            // gestures with tight timing, a tap's click and a tap-drag. Deferred, touches arrive at
+            // once and the Home indicator takes a second swipe, as in a game.
+            .defersSystemGestures(on: .bottom)
             .environment(\.largerPictureOffered, offersLarger)
             #if DEBUG
             // The console's line for the gates: what Larger Picture's rule made of the switch and of

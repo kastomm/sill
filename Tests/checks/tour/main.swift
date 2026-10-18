@@ -879,7 +879,7 @@ for t in [TourTopic.touch, .bar] {
 check(texts(laptopFirst) == ["cmd, opt, ctrl and shift stay on for the next key or trackpad click: tap cmd, then C, to copy.",
                              "The keyboard key types on Mac mini, on screen or with a hardware keyboard.",
                              "Tap with two fingers on the trackpad to right-click.",
-                             "Touch and hold the trackpad, then drag, to move a window or select text."], "laptop: \(texts(laptopFirst))")
+                             "Tap, then tap and hold the trackpad, then drag, to select text or move things."], "laptop: \(texts(laptopFirst))")
 check(laptopFirst.rows[0].spoken == "Command, Option, Control and Shift stay on for the next key or trackpad click: tap Command, then C, to copy.", "the caps spoken by name")
 check(laptopFirst.rows[3].spans.filter(\.strong).map(\.text) == ["Touch and hold", "then drag"], "two names in the drag row")
 check(laptopFirst.rows.map(\.symbol) == ["command", "keyboard", "cursorarrow.click.2", "hand.draw"], "laptop's symbols")
@@ -896,7 +896,7 @@ check(words(.settings, F, device: "iPhone").hint == "The last button in the row 
 let laptopPhone = words(.laptop, F, device: "iPhone", first: true)
 check(texts(laptopPhone) == ["cmd, opt, ctrl and shift stay on for the next key or trackpad click: tap cmd, then C, to copy.",
                              "Tap with two fingers on the trackpad to right-click.",
-                             "Touch and hold the trackpad, then drag, to move a window or select text."], "a phone's laptop card: no keyboard key: \(texts(laptopPhone))")
+                             "Tap, then tap and hold the trackpad, then drag, to select text or move things."], "a phone's laptop card: no keyboard key: \(texts(laptopPhone))")
 check(laptopPhone.hint == "Under the windows: the row of keys, then the trackpad." && laptopPhone.subtitle == "Upright, Sill adds keys and a trackpad.",
       "a phone's laptop hint and subtitle")
 check(words(.laptop, F, device: "iPhone", voiceOver: true, first: true).rows.map(\.spoken)

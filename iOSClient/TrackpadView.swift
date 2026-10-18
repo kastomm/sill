@@ -173,6 +173,39 @@ final class TrackpadSurface: UIView, UIGestureRecognizerDelegate {
     private var trackLast: CGPoint = .zero
     /// True once the tracked finger has cleared the slop.
     private var trackLive = false
+    /// A tap clicks only as a real trackpad's tap-to-click does: the finger lifted within `tapTime`
+    /// of landing and travelled no more than `tapTravel` from where it landed. Every recognizer
+    /// here runs beside every other, so UIKit's tap is never failed by a move, and a short, slow
+    /// drag's lift clicked (2026-10-18, a ghost click at the end of a pointer nudge). The stroke's
+    /// start and its farthest travel are taken from the view's own touches and the tracker.
+    private static let tapTravel: CGFloat = 6
+    private static let tapTime: TimeInterval = 0.3
+    private var strokeStart = CGPoint.zero
+    private var strokeStartedAt: TimeInterval = 0
+    private var strokeTravel: CGFloat = 0
+
+    /// Whether the stroke that just ended was a tap: short, and still.
+    private var strokeWasTap: Bool {
+        strokeTravel <= Self.tapTravel && CACurrentMediaTime() - strokeStartedAt <= Self.tapTime
+    }
+
+    /// Tap, then tap again and keep the finger down: the button goes down at once and stays down
+    /// while the finger moves, a drag, as a Mac trackpad's "tap to click" drags (a quick second
+    /// tap is then a double-click: the down at its landing and the up at its lift). The second
+    /// finger must land within `tapDragWindow` of the first tap's lift (macOS's own double-click
+    /// interval is about 0.5 s; 0.3 missed most second taps on the glass, 2026-10-18). `tapDrag` is
+    /// true while such a stroke holds the button (`dragging` too; it was shared with the
+    /// press-and-hold drag until that went).
+    private static let tapDragWindow: TimeInterval = 0.5
+    private var lastTapAt: TimeInterval = -1
+    private var tapDrag = false
+    /// This stroke held the button from its landing (a tap-drag): its lift is the button's up,
+    /// never a tap's click, whichever of the tracker's end and the tap recognizer fires first.
+    private var strokeHeld = false
+
+    private func noteTravel(to location: CGPoint) {
+        strokeTravel = max(strokeTravel, hypot(location.x - strokeStart.x, location.y - strokeStart.y))
+    }
     /// Set when the pan turned this stroke into a two-finger scroll; cleared when the tracker begins
     /// the next stroke. Backs up the tracker's own second-finger check (`FingerTracker`).
     private var trackSuspended = false
@@ -235,14 +268,9 @@ final class TrackpadSurface: UIView, UIGestureRecognizerDelegate {
         twoFingerTap.numberOfTouchesRequired = 2
         addGestureRecognizer(twoFingerTap)
 
-        // Press and hold, then drag: the left button goes down and stays down, so a window or a
-        // selection can be dragged from the pad. It has to run alongside the tracker, which is what
-        // actually moves the pointer while the button is held.
-        let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress))
-        longPress.minimumPressDuration = 0.45
-        longPress.numberOfTouchesRequired = 1
-        longPress.delegate = self
-        addGestureRecognizer(longPress)
+        // No press-and-hold drag any more (2026-10-18, Aman): a finger that rests and then moves
+        // only moves the pointer, as on a Mac trackpad; the one drag is tap, tap-and-hold
+        // (`tapDrag`). The press-and-hold made a second drag out of the move right after a tap-drag.
 
         // Only counts: it never recognizes, takes no touch from anyone and delays nothing.
         fingerCounter.onCount = { [weak self] n in self?.onFingers(n) }
@@ -251,7 +279,7 @@ final class TrackpadSurface: UIView, UIGestureRecognizerDelegate {
 
         // Three fingers or more: a gesture for the Mac, never a click, a drag or a scroll
         // (StrokeObserver, TrackpadGestures). It only watches, as the counter does; no stroke goes
-        // silent while the press-and-hold drag holds the button, which must still come up.
+        // silent while a tap-drag holds the button, which must still come up.
         strokes.holding = { [weak self] in self?.dragging ?? false }
         strokes.onSilenced = { [weak self] in self?.strokeSilenced() }
         strokes.onGesture = { [weak self] gesture, fingers in self?.gestureDecided(gesture, fingers: fingers) }
@@ -311,6 +339,7 @@ final class TrackpadSurface: UIView, UIGestureRecognizerDelegate {
             trackLive = false
             trackLast = tracker.location(in: self)
         case .changed:
+            noteTravel(to: tracker.location(in: self))
             guard trackerDriving else { return }
             let location = tracker.location(in: self)
             if !trackLive {
@@ -324,6 +353,8 @@ final class TrackpadSurface: UIView, UIGestureRecognizerDelegate {
             moveCursor(dx: dx, dy: dy)
         default:
             trackLive = false
+            // The tap-drag's finger lifted (or UIKit took it): the button comes up.
+            if tapDrag { tapDrag = false; releaseButton() }
         }
     }
 
@@ -440,7 +471,28 @@ final class TrackpadSurface: UIView, UIGestureRecognizerDelegate {
         let down = event?.touches(for: self)?
             .filter { $0.phase != .ended && $0.phase != .cancelled }.count ?? 0
         // The first finger of a new stroke: carry on from wherever the pointer is now.
-        if down == touches.count { adoptAnchor() }
+        if down == touches.count {
+            adoptAnchor()
+            if let first = touches.first {
+                strokeStart = first.location(in: self)
+                strokeStartedAt = CACurrentMediaTime()
+                strokeTravel = 0
+                strokeHeld = false
+                #if DEBUG
+                if lastTapAt >= 0 {
+                    print(String(format: "trackpad: a finger landed %.0f ms after a tap's lift (the tap-drag window is %.0f ms)",
+                                 (strokeStartedAt - lastTapAt) * 1000, Self.tapDragWindow * 1000))
+                }
+                #endif
+                // Tap, tap-and-hold: the second landing within the window holds the button down.
+                if !strokes.silent, !dragging, strokeStartedAt - lastTapAt <= Self.tapDragWindow {
+                    lastTapAt = -1
+                    tapDrag = true
+                    strokeHeld = true
+                    holdButton()
+                }
+            }
+        }
         // Spin the Taptic Engine up now, so a tap's click lands without its start-up delay.
         clickHaptic.prepare()
         if down >= 2 { momentum.stop() }
@@ -452,10 +504,12 @@ final class TrackpadSurface: UIView, UIGestureRecognizerDelegate {
             // This device's pointer is left alone: it outlives this view across a rotation.
             momentum.stop()
             // A drag the pad is taken away in the middle of (a rotation) has ended by now: UIKit
-            // cancels the long press before the pad leaves its window, and its end (`handleLongPress`)
-            // sends the button's up and the modifiers' and spends the latch (a rig on a private
-            // simulator, 2026-09-27: the removal animated or not, the touch cancelled first, the long
-            // press taken off the pad first).
+            // cancels the tracker (a long press) before the pad leaves its window, and its end
+            // (`handleTrack`) sends the button's up and the modifiers' and spends the latch (a rig on
+            // a private simulator, 2026-09-27, with the press-and-hold drag of the time: the removal
+            // animated or not, the touch cancelled first, the long press taken off the pad first).
+            // Belt and braces for the tap-drag: the button never stays down past the pad.
+            if tapDrag { tapDrag = false; releaseButton() }
             #if DEBUG
             if InputScript.pad === self { InputScript.pad = nil }
             #endif
@@ -469,40 +523,48 @@ final class TrackpadSurface: UIView, UIGestureRecognizerDelegate {
     }
 
     @objc private func handleTap() {
-        guard !strokes.silent else { return }
+        guard !strokes.silent, strokeWasTap else { return }
+        // A tap-drag's quick lift was its own click (the down at its landing, the up at its lift):
+        // with the first tap, a double-click. A tap while the press-and-hold holds the button: none.
+        guard !strokeHeld, !dragging else { return }
         click(down: .leftDown, up: .leftUp)
+        lastTapAt = CACurrentMediaTime()
     }
 
     /// Two fingers is the right button, the way a Mac trackpad's secondary click works.
     @objc private func handleTwoFingerTap() {
-        guard !strokes.silent else { return }
+        guard !strokes.silent, strokeWasTap else { return }
         click(down: .rightDown, up: .rightUp)
     }
 
-    @objc private func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
-        guard !strokes.silent else { return }
-        switch gesture.state {
-        case .began:
-            dragging = true
-            // Firmer than a click: the button is now held down.
-            clickHaptic.impactOccurred(intensity: 1.0)
-            catchUp()
-            setPointer(cursor)
-            pressModifiers()
-            send(.pointer(.leftDown, x: cursor.x, y: cursor.y))
-        case .ended, .cancelled, .failed:
-            guard dragging else { return }
-            dragging = false
-            // Softer: the button coming back up.
-            clickHaptic.impactOccurred(intensity: 0.5)
-            catchUp()
-            setPointer(cursor)
-            send(.pointer(.leftUp, x: cursor.x, y: cursor.y))
-            releaseModifiers()
-            consumeLatch()
-        default:
-            break
-        }
+    /// The left button goes down and stays down, for a tap-drag.
+    private func holdButton() {
+        dragging = true
+        #if DEBUG
+        print("trackpad: left button down, held for a drag (tap, tap-and-hold)")
+        #endif
+        // Firmer than a click: the button is now held down.
+        clickHaptic.impactOccurred(intensity: 1.0)
+        catchUp()
+        setPointer(cursor)
+        pressModifiers()
+        send(.pointer(.leftDown, x: cursor.x, y: cursor.y))
+    }
+
+    /// The held button comes back up.
+    private func releaseButton() {
+        guard dragging else { return }
+        dragging = false
+        #if DEBUG
+        print("trackpad: left button up: the drag ended")
+        #endif
+        // Softer: the button coming back up.
+        clickHaptic.impactOccurred(intensity: 0.5)
+        catchUp()
+        setPointer(cursor)
+        send(.pointer(.leftUp, x: cursor.x, y: cursor.y))
+        releaseModifiers()
+        consumeLatch()
     }
 
     // MARK: - Three fingers

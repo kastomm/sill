@@ -103,7 +103,7 @@ private struct DuoPostureReader: ViewModifier {
                     print("duo: hinge \(now.rawValue)" + (new.hinge.map { String(format: " %.1f°", $0.angle.degrees) } ?? ""))
                     #endif
                     hinge = now
-                }
+                }   
         } else {
             content
         }
