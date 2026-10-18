@@ -25,9 +25,10 @@ enum MacMenuContextRule {
     }
 }
 
-/// Opens the Mac's menus at a point of a view: a clear 2 × 2 pt `MacMenuTriggerButton` (the Menus
-/// button's own, so the pull-down reports when it shows and goes) moved under the point and asked
-/// for its primary action, which is its menu. The button takes no touch of its own.
+/// Opens a menu at a point of a view: a clear 2 × 2 pt `MacMenuTriggerButton` (the Menus button's
+/// own, so the pull-down reports when it shows and goes) moved under the point and asked for its
+/// primary action, which is its menu: the Mac's menus (`present(at:)`), or any UIMenu given
+/// (`present(_:at:)`, a thumbnail's window commands). The button takes no touch of its own.
 final class MacMenuPopup {
     private let trigger = MacMenuTriggerButton(type: .custom)
     weak var client: StreamClient?
@@ -60,14 +61,20 @@ final class MacMenuPopup {
     /// (no menus, before iOS 17.4, not on screen): the caller then treats the click as the Mac's.
     @discardableResult
     func present(at point: CGPoint) -> Bool {
-        guard #available(iOS 17.4, *) else { log("not on this iOS (17.4 needed)"); return false }
         guard let client else { log("no client"); return false }
         guard client.menus.hasMenus else { log("the Mac sent no menus"); return false }
+        return present(UIMenu(children: MacMenuElements.topMenus(client, barIdentifiers: false)), at: point)
+    }
+
+    /// Opens `menu` at `point`. False before iOS 17.4 or off screen.
+    @discardableResult
+    func present(_ menu: UIMenu, at point: CGPoint) -> Bool {
+        guard #available(iOS 17.4, *) else { log("not on this iOS (17.4 needed)"); return false }
         guard trigger.window != nil else { log("the trigger is not on screen"); return false }
-        trigger.menu = UIMenu(children: MacMenuElements.topMenus(client, barIdentifiers: false))
+        trigger.menu = menu
         trigger.frame = CGRect(x: point.x - 1, y: point.y - 1, width: 2, height: 2)
         trigger.superview?.bringSubviewToFront(trigger)
-        log("opening the pull-down at \(Int(point.x)),\(Int(point.y))")
+        log("opening a menu at \(Int(point.x)),\(Int(point.y))")
         trigger.performPrimaryAction()
         return true
     }

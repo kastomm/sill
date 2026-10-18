@@ -16,14 +16,16 @@ under the click, `performPrimaryAction`, iOS 17.4; the same `MacMenuElements` as
 and its open and close hooks, so the drawer, the lights and the Settings panel go as for the
 button). InputOverlayView keeps a secondary click in the band from the Mac (`menuClickPending`) and
 opens the pull-down where the button comes up; could it not, the Mac gets the click whole. A
-`UITapGestureRecognizer` with `buttonMaskRequired = .secondary` on `HoldDragOverlay` does the same on
-the streamed window's thumbnail alone (the Mac reads only the streamed app's menus); the plain tap
-and the hold keep their primary button. Anywhere else in the picture a secondary click stays the
+`UITapGestureRecognizer` with `buttonMaskRequired = .secondary` on `HoldDragOverlay` shows, on any
+thumbnail, the three lights as a context menu (`WindowCommandMenu`: Close Window, Minimize, Full
+Screen, kind 15 as the held thumbnail's lights send it; Aman's ask, after a first cut that opened
+the Mac's menus on the streamed window's thumbnail alone); the plain tap and the hold keep their
+primary button. Anywhere else in the picture a secondary click stays the
 Mac's right-click. pbxproj AE01/FE01. **Unverified: not compiled** (the session's shell has no
 Swift); for Aman with the Magic Keyboard: a two-finger click on a title bar (the pull-down there,
-nothing on the Mac), lower in the window (the Mac's contextual menu as before), on the streamed
-window's thumbnail (the pull-down) and on another thumbnail (nothing); Esc and a click outside close
-it; the Settings panel and the lights go when it opens.
+nothing on the Mac), lower in the window (the Mac's contextual menu as before), on any
+thumbnail (Close Window, Minimize, Full Screen, each acting on the Mac); Esc and a click outside
+close it; the Settings panel and the lights go when it opens.
 
 **The Mac's display while a device is connected (2026-10-17, branch `display-sleep` from main at
 5c323e6; docs/display-sleep-plan.md has the plan, its open questions with the default taken, and

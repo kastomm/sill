@@ -1554,9 +1554,10 @@ struct WindowStrip: View {
     /// Which thumbnail has its traffic-light submenu open. Owned by the screen root, which draws
     /// the submenu outside this clipped strip.
     @Binding var menuFor: UInt32?
-    /// A secondary click (a trackpad's two-finger click, a mouse's right button) on the streamed
-    /// window's thumbnail opens the Mac's menus there, as the Menus button does (MacMenuPopup); the
-    /// screen's hooks for the pull-down showing and going.
+    /// A secondary click (a trackpad's two-finger click, a mouse's right button) on a thumbnail
+    /// shows the three lights as a context menu, Close Window, Minimize and Full Screen, each sent
+    /// to the Mac as the held thumbnail's lights send them (kind 15); the screen's hooks for a menu
+    /// showing and going (one thing open at a time, as for the Menus pull-down).
     var menusOpened: () -> Void = {}
     var menusClosed: () -> Void = {}
 
@@ -1599,7 +1600,7 @@ struct WindowStrip: View {
                                             onHold: { openMenu(for: window.id) },
                                             onMove: { t in holdMoved(window: window, index: index, count: windows.count, slot: slot, translation: t) },
                                             onEnd: { holdEnded(window: window) },
-                                            menusClient: client.active == .window(window.id) ? client : nil,
+                                            onCommand: { client.command($0, window: window.id) },
                                             menusOpened: { closeMenu(); menusOpened() },
                                             menusClosed: menusClosed)
                         }
@@ -1686,9 +1687,9 @@ struct HoldDragOverlay: UIViewRepresentable {
     /// Translation since the hold began, in window coordinates (stable while the view moves).
     var onMove: (CGSize) -> Void
     var onEnd: () -> Void
-    /// A secondary click opens the Mac's menus here (MacMenuPopup), for the streamed window's
-    /// thumbnail: nil for any other (the Mac reads only the streamed app's menus).
-    var menusClient: StreamClient? = nil
+    /// A secondary click shows the window's commands as a context menu (WindowCommandMenu): Close
+    /// Window, Minimize, Full Screen, each sent as the lights send them.
+    var onCommand: (WindowCommand.Action) -> Void = { _ in }
     var menusOpened: () -> Void = {}
     var menusClosed: () -> Void = {}
 
@@ -1711,7 +1712,6 @@ struct HoldDragOverlay: UIViewRepresentable {
 
     func updateUIView(_ view: UIView, context: Context) {
         context.coordinator.parent = self
-        context.coordinator.popup.client = menusClient
         context.coordinator.popup.onOpen = menusOpened
         context.coordinator.popup.onClose = menusClosed
     }
@@ -1725,14 +1725,12 @@ struct HoldDragOverlay: UIViewRepresentable {
 
         @objc func tapped() { parent.onTap() }
 
-        /// The streamed window's thumbnail: its app's menus where the click landed. Any other
-        /// thumbnail, or before iOS 17.4: nothing (a tap selects, a hold shows the lights).
+        /// The window's commands where the click landed (any thumbnail; before iOS 17.4 nothing:
+        /// a hold shows the lights).
         @objc func secondaryClicked(_ g: UITapGestureRecognizer) {
-            #if DEBUG
-            print("menus: secondary click on a thumbnail" + (parent.menusClient == nil ? " that is not the streamed window's: nothing" : ""))
-            #endif
-            guard parent.menusClient != nil, let view = g.view else { return }
-            popup.present(at: g.location(in: view))
+            guard let view = g.view else { return }
+            let send = parent.onCommand
+            popup.present(WindowCommandMenu.menu { send($0) }, at: g.location(in: view))
         }
 
         @objc func held(_ g: UILongPressGestureRecognizer) {
@@ -1752,6 +1750,18 @@ struct WindowMenuAnchorKey: PreferenceKey {
     static var defaultValue: Anchor<CGRect>? = nil
     static func reduce(value: inout Anchor<CGRect>?, nextValue: () -> Anchor<CGRect>?) {
         if let next = nextValue() { value = next }
+    }
+}
+
+/// The three lights as a UIKit context menu, for a secondary click on a thumbnail
+/// (HoldDragOverlay): the same three commands, in the lights' order, with their symbols.
+enum WindowCommandMenu {
+    static func menu(_ send: @escaping (WindowCommand.Action) -> Void) -> UIMenu {
+        UIMenu(children: [
+            UIAction(title: "Close Window", image: UIImage(systemName: "xmark.circle.fill"), attributes: .destructive) { _ in send(.close) },
+            UIAction(title: "Minimize", image: UIImage(systemName: "minus.circle.fill")) { _ in send(.minimize) },
+            UIAction(title: "Full Screen", image: UIImage(systemName: "arrow.up.left.and.arrow.down.right.circle.fill")) { _ in send(.fullScreen) },
+        ])
     }
 }
 
