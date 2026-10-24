@@ -32,6 +32,11 @@ struct HostSettingsPanel: View {
     var pairThisDevice: () -> Void = {}
     /// Take the Tour: the stream screen puts the panel away and shows the tour of its layout.
     var takeTour: () -> Void = {}
+    /// Text size (the bar's Aa), when this panel is where it lives: sideways since 2026-10-23, where
+    /// the bar's slot went to Mouse (StreamScreen.textScale). Nil: the bar has the button (upright).
+    /// The Mac fits a streamed window to the picture divided by the scale, so a bigger number means
+    /// bigger text; nil leaves the window alone (the control's "Auto"). Never the Desktop's.
+    var textScale: Binding<Double?>? = nil
 
     @AccessibilityFocusState private var headerFocused: Bool
     /// Two seconds on this connection and still no state: the Mac runs a Sill without settings.
@@ -476,6 +481,26 @@ struct HostSettingsPanel: View {
             .padding(.bottom, 6)
             .accessibilityAddTraits(.isHeader)
             .id(Self.gesturesGroupID)
+        if let textScale {
+            Rows {
+                HStack(spacing: 12) {
+                    Text("Text Size").foregroundStyle(Palette.text)
+                    Spacer(minLength: 0)
+                    Picker("Text Size", selection: Binding(get: { textScale.wrappedValue ?? 0 },
+                                                           set: { textScale.wrappedValue = $0 == 0 ? nil : $0 })) {
+                        Text("Auto").tag(0.0)
+                        ForEach(Self.textScales, id: \.self) { scale in
+                            Text(Self.scaleLabel(scale)).tag(scale)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .tint(Palette.accent)
+                }
+                .rowFrame()
+                .accessibilityElement(children: .combine)
+            }
+            Footnote(text: "Makes a window’s text on \(mac) larger or smaller: the Mac fits the window to the picture at this scale. Never the Desktop’s. Auto leaves the window its own size.")
+        }
         if offersLargerPicture {
             Rows {
                 Toggle(isOn: $largerPicture) {
@@ -524,6 +549,10 @@ struct HostSettingsPanel: View {
 
     /// The Mac's window list said it takes the gestures (`WindowList.gestures`).
     private var macTakesGestures: Bool { (client.hostGestures ?? 0) >= TrackpadGesture.generation }
+
+    /// The Aa control's five detents (TextScaleControl: 0.5× to 1.5× in 0.25 steps), and their names.
+    static let textScales: [Double] = [0.5, 0.75, 1, 1.25, 1.5]
+    static func scaleLabel(_ s: Double) -> String { String(format: "%g×", s) }   // "0.75×", "1×", "1.25×"
 
     /// Under Larger Picture's switch: that it is a window's picture (the Desktop, which Aa never
     /// resizes, keeps the thumbnails: `PhonePortraitLayout.largerPicture(switchOn:streaming:)`), what

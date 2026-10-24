@@ -26,8 +26,8 @@ check(TourPolicy.steps(L, voiceOver: true) == [.bar, .settings], "landscape unde
 check(TourPolicy.steps(P, voiceOver: true) == [.bar, .settings, .laptop], "portrait under VoiceOver: no touch, laptop kept")
 check(TourPolicy.only(P) == [.laptop] && TourPolicy.only(L) == [], "only(): the laptop half is portrait's alone")
 check(TourPolicy.targets(.touch, L) == [.stream] && TourPolicy.targets(.touch, P) == [.stream], "touch lights the picture")
-check(TourPolicy.targets(.bar, L) == [.strip, .textSize, .keyboard], "landscape bar: the strip, Aa and Keyboard")
-check(TourPolicy.targets(.bar, P) == [.strip, .textSize], "portrait bar: the strip and Aa (the keyboard is a cap)")
+check(TourPolicy.targets(.bar, L) == [.strip, .keyboard], "landscape bar: the strip and Keyboard (Aa is in Settings sideways)")
+check(TourPolicy.targets(.bar, P) == [.strip, .keyboard], "portrait bar: the strip and Keyboard (Aa is in Settings on an iPad)")
 check(TourPolicy.targets(.settings, L) == [.settings] && TourPolicy.targets(.settings, P) == [.settings], "settings lights its button")
 check(TourPolicy.targets(.laptop, P) == [.keys, .trackpad], "laptop: the keys, then the trackpad")
 check(TourTarget.allCases.count == 8 && TourTarget.allCases.contains(.apps), "eight targets, Apps among them")
@@ -296,7 +296,7 @@ func model(_ w: CGFloat, _ h: CGFloat) -> Screen {
             regular ? (12, 14, 22, 10, 78, 64, 58, 10, 48, false) : (10, 14, 16, 10, 62, 56, 50, 6, 44, true)
         let barY = half + padTop
         let settingsX = w - padSide - bw
-        let aaX = settingsX - 2 * (12 + bw)
+        let keyboardX = settingsX - 2 * (12 + bw)      // Keyboard, Desktop, Settings (Aa's old place, 2026-10-23)
         let stripX = padSide + bw + 12
         let by = barY + (barH - bh) / 2
         let keysY = barY + barH + gap
@@ -304,8 +304,8 @@ func model(_ w: CGFloat, _ h: CGFloat) -> Screen {
         let padY = keysY + keysH + gap
         return Screen(size: size, layout: P, stream: CGRect(x: 8, y: 8, width: w - 16, height: half - 16), targets: [
             .stream: CGRect(x: 8, y: 8, width: w - 16, height: half - 16),
-            .strip: CGRect(x: stripX, y: barY + thumbPad - 5, width: aaX - 12 - stripX, height: barH - (thumbPad - 5) - (thumbPad - 6)),
-            .textSize: CGRect(x: aaX, y: by, width: bw, height: bh),
+            .strip: CGRect(x: stripX, y: barY + thumbPad - 5, width: keyboardX - 12 - stripX, height: barH - (thumbPad - 5) - (thumbPad - 6)),
+            .keyboard: CGRect(x: keyboardX, y: by, width: bw, height: bh),
             .settings: CGRect(x: settingsX, y: by, width: bw, height: bh),
             .keys: CGRect(x: padSide, y: keysY, width: w - 2 * padSide, height: keysH),
             .trackpad: CGRect(x: padSide, y: padY, width: w - 2 * padSide, height: h - padBottom - padY)])
@@ -313,15 +313,15 @@ func model(_ w: CGFloat, _ h: CGFloat) -> Screen {
     let compact = h < 560
     let (barH, pad, bw, bh): (CGFloat, CGFloat, CGFloat, CGFloat) = compact ? (78, 14, 64, 58) : (86, 22, 66, 66)
     let settingsX = w - pad - bw
-    let keyboardX = settingsX - 2 * (12 + bw)
-    let aaX = keyboardX - 12 - bw
+    // Keyboard, Mouse, Desktop, Settings: Keyboard is three slots before Settings (it took Aa's
+    // place when Aa moved into the Settings panel sideways, 2026-10-23).
+    let keyboardX = settingsX - 3 * (12 + bw)
     let stripX = pad + bw + 12
     let by = (barH - bh) / 2
     let stream = CGRect(x: 8, y: barH + 8, width: w - 16, height: h - barH - 16)
     return Screen(size: size, layout: L, stream: stream, targets: [
         .stream: stream,
-        .strip: CGRect(x: stripX, y: 5, width: aaX - 12 - stripX, height: barH - 9),
-        .textSize: CGRect(x: aaX, y: by, width: bw, height: bh),
+        .strip: CGRect(x: stripX, y: 5, width: keyboardX - 12 - stripX, height: barH - 9),
         .keyboard: CGRect(x: keyboardX, y: by, width: bw, height: bh),
         .settings: CGRect(x: settingsX, y: by, width: bw, height: bh)])
 }
@@ -686,7 +686,7 @@ func halvesModel(_ w: CGFloat, _ h: CGFloat, picture: CGFloat, controls: CGFloat
         (12, 14, 22, 10, 78, 64, 58, 10, 48)
     let barY = controls + padTop
     let settingsX = w - padSide - bw
-    let aaX = settingsX - 2 * (12 + bw)
+    let keyboardX = settingsX - 2 * (12 + bw)      // Keyboard, Desktop, Settings (Aa's old place, 2026-10-23)
     let stripX = padSide + bw + 12
     let by = barY + (barH - bh) / 2
     let keysY = barY + barH + gap
@@ -694,8 +694,8 @@ func halvesModel(_ w: CGFloat, _ h: CGFloat, picture: CGFloat, controls: CGFloat
     let stream = CGRect(x: 8, y: 8, width: w - 16, height: picture - 16)
     return Screen(size: CGSize(width: w, height: h), layout: P, stream: stream, targets: [
         .stream: stream,
-        .strip: CGRect(x: stripX, y: barY + thumbPad - 5, width: aaX - 12 - stripX, height: barH - (thumbPad - 5) - (thumbPad - 6)),
-        .textSize: CGRect(x: aaX, y: by, width: bw, height: bh),
+        .strip: CGRect(x: stripX, y: barY + thumbPad - 5, width: keyboardX - 12 - stripX, height: barH - (thumbPad - 5) - (thumbPad - 6)),
+        .keyboard: CGRect(x: keyboardX, y: by, width: bw, height: bh),
         .settings: CGRect(x: settingsX, y: by, width: bw, height: bh),
         .keys: CGRect(x: padSide, y: keysY, width: w - 2 * padSide, height: capH),
         .trackpad: CGRect(x: padSide, y: padY, width: w - 2 * padSide, height: h - padBottom - padY)])
@@ -709,21 +709,21 @@ let bookScreen: Screen = {
     return Screen(size: bookSize, layout: L, stream: flatLandscape.stream, targets: targets)
 }()
 /// The book pose as this build draws it, the status bar's strip shown at the side (867 pt): the bar
-/// at DuoPosture.bookBar's compact width and 7 pt gaps (Menus at 497, Aa 568, Keyboard 639, Settings
-/// 781), the strip ending 7 pt short of the fold (93 to 448.5); open flat sideways the bar as before.
+/// at DuoPosture.bookBar's compact width and 7 pt gaps (Menus at 497, Keyboard 568, Mouse 639, Desktop
+/// 710, Settings 781), the strip ending 7 pt short of the fold (93 to 448.5); open flat sideways the
+/// bar as before.
 let book867Size = CGSize(width: 867, height: 669)
 let flatLandscape867 = model(867, 669)
 let book867: Screen = {
     var targets = flatLandscape867.targets
     targets[.strip] = CGRect(x: 93, y: 5, width: 355.5, height: 77)
-    targets[.textSize] = CGRect(x: 568, y: 10, width: 64, height: 66)
-    targets[.keyboard] = CGRect(x: 639, y: 10, width: 64, height: 66)
+    targets[.keyboard] = CGRect(x: 568, y: 10, width: 64, height: 66)
     targets[.settings] = CGRect(x: 781, y: 10, width: 64, height: 66)
     return Screen(size: book867Size, layout: L, stream: flatLandscape867.stream, targets: targets)
 }()
 let laptop = halvesModel(669, 951, picture: 455, controls: 496), flatUpright = halvesModel(669, 951, picture: 424, controls: 424)
 let duoCover = phoneModel(382, 678), duoCoverSide = model(594, 466)
-check(flatLandscape.stream == CGRect(x: 8, y: 94, width: 935, height: 567) && flatLandscape.targets[.textSize]!.minX == 629
+check(flatLandscape.stream == CGRect(x: 8, y: 94, width: 935, height: 567) && flatLandscape.targets[.keyboard]!.minX == 629
       && flatLandscape.targets[.settings]!.minX == 863, "951×669 as the stream screen lays it out")
 check(laptop.stream == CGRect(x: 8, y: 8, width: 653, height: 439) && laptop.targets[.keys]!.minY == 596 && laptop.targets[.trackpad]!.maxY == 929,
       "669×951 half-folded: the picture above the fold, the controls from 496")
@@ -845,22 +845,24 @@ check(texts(words(.touch, L, device: "iPhone")) == ["Tap to click.", "Touch and 
 check(words(.touch, L, mac: "").subtitle == "What you do here happens on your Mac." && words(.touch, P, mac: "").hint == "The picture of your Mac fills the top half of the screen.",
       "the “your Mac” fallback")
 let barL = words(.bar, L)
-check(barL.title == "Windows and Text Size" && barL.subtitle == nil, "bar: title, no subtitle")
+check(barL.title == "Windows and Keyboard" && barL.subtitle == nil, "bar sideways: title (Aa is in Settings there), no subtitle")
 check(texts(barL) == ["Touch and hold a window to close, minimize or go full screen. Keep holding and drag to move it.",
-                      "Aa: touch it and slide to make a window’s text larger or smaller.",
                       "Keyboard types on Mac mini, on screen or with a hardware keyboard."], "bar sideways: \(texts(barL))")
-check(barL.rows.map(\.symbol) == ["hand.point.up.left", "textformat.size", "keyboard"], "bar's symbols")
-check(texts(words(.bar, P)) == Array(texts(barL).prefix(2)), "bar upright: no Keyboard row (it is a cap)")
+check(barL.rows.map(\.symbol) == ["hand.point.up.left", "keyboard"], "bar's symbols sideways: no Aa")
+let barP = words(.bar, P)
+check(barP == TourCopy(title: barL.title, subtitle: nil, rows: barL.rows, hint: "In the bar below the picture, after Apps."),
+      "bar upright: as sideways (Keyboard in Aa's place, Aa in Settings), its own hint: \(texts(barP))")
 check(barL.hint == "In the bar at the top, after Apps." && words(.bar, P).hint == "In the bar below the picture, after Apps.", "bar's hints")
 check(texts(words(.bar, L, mac: "Studio")).last == "Keyboard types on Studio, on screen or with a hardware keyboard.", "the Mac's name in the Keyboard row")
 let settingsL = words(.settings, L)
 check(settingsL.title == "Settings" && settingsL.subtitle == nil && settingsL.hint == "The last button in the bar.", "settings: title, hint")
-check(texts(settingsL) == ["Disconnect is at the bottom of Settings.", "Take the Tour is there too, to see this again.",
-                           "Hold your iPad upright for a trackpad and keys."], "settings sideways on iPad")
-check(settingsL.rows.map(\.symbol) == ["xmark.circle", "questionmark.circle", "ipad"], "settings' symbols on iPad")
+check(texts(settingsL) == ["Text Size is in Settings: it makes a window’s text on Mac mini larger or smaller.",
+                           "Disconnect is at the bottom of Settings.", "Take the Tour is there too, to see this again.",
+                           "Hold your iPad upright for a trackpad and keys."], "settings sideways on iPad: Text Size first")
+check(settingsL.rows.map(\.symbol) == ["textformat.size", "xmark.circle", "questionmark.circle", "ipad"], "settings' symbols on iPad")
 check(texts(words(.settings, L, device: "iPhone")).last == "Hold your iPhone upright for a trackpad and keys."
       && words(.settings, L, device: "iPhone").rows.last?.symbol == "iphone", "the upright row on iPhone")
-check(texts(words(.settings, P)) == Array(texts(settingsL).prefix(2)), "no upright row when upright")
+check(texts(words(.settings, P)) == Array(texts(settingsL).prefix(3)), "upright: Text Size, Disconnect and Take the Tour; no upright row")
 let laptopFirst = words(.laptop, P, first: true)
 check(laptopFirst.title == "Keys and Trackpad" && laptopFirst.subtitle == "Upright, Sill adds keys and a trackpad.", "laptop as a run's first card")
 check(words(.laptop, P, first: false).subtitle == nil, "laptop's subtitle only as a run's first")
@@ -877,22 +879,22 @@ for t in [TourTopic.touch, .bar] {
     for layout in [L, P] { check(words(t, layout, onItsSide: true) == words(t, layout), "\(t) \(layout): the same words on the Duo") }
 }
 check(texts(laptopFirst) == ["cmd, opt, ctrl and shift stay on for the next key or trackpad click: tap cmd, then C, to copy.",
-                             "The keyboard key types on Mac mini, on screen or with a hardware keyboard.",
                              "Tap with two fingers on the trackpad to right-click.",
                              "Tap, then tap and hold the trackpad, then drag, to select text or move things."], "laptop: \(texts(laptopFirst))")
 check(laptopFirst.rows[0].spoken == "Command, Option, Control and Shift stay on for the next key or trackpad click: tap Command, then C, to copy.", "the caps spoken by name")
 check(laptopFirst.rows[3].spans.filter(\.strong).map(\.text) == ["Touch and hold", "then drag"], "two names in the drag row")
-check(laptopFirst.rows.map(\.symbol) == ["command", "keyboard", "cursorarrow.click.2", "hand.draw"], "laptop's symbols")
+check(laptopFirst.rows.map(\.symbol) == ["command", "cursorarrow.click.2", "hand.draw"], "laptop's symbols")
 check(laptopFirst.hint == "Below the bar: the row of keys, then the trackpad.", "laptop's hint")
 check(touchPad.rows[1].spoken == "Touch and hold to right-click.", "a row is spoken as it reads")
 // A phone held upright: the bar card names row 1's Keyboard, as sideways; the laptop card has no
 // keyboard key (that is row 1's button); the hints say where the rows are.
 let barPhone = words(.bar, F, device: "iPhone")
-check(texts(barPhone) == texts(words(.bar, L, device: "iPhone")) && texts(barPhone).count == 3, "a phone's bar card: as sideways, with Keyboard")
+check(texts(barPhone) == [texts(barL)[0], "Aa: touch it and slide to make a window’s text larger or smaller.", texts(barL)[1]]
+      && barPhone.title == "Windows and Text Size", "a phone's bar card: windows, Aa (row 1 keeps it) and Keyboard")
 check(barPhone.hint == "Under the picture: Aa and Keyboard in the first row, the windows in the second.", "a phone's bar hint")
 check(words(.touch, F, device: "iPhone").hint == "The picture of Mac mini is at the top of the screen.", "a phone's picture hint")
 check(words(.settings, F, device: "iPhone").hint == "The last button in the row under the picture."
-      && texts(words(.settings, F, device: "iPhone")) == Array(texts(settingsL).prefix(2)), "a phone's settings card: no upright row")
+      && texts(words(.settings, F, device: "iPhone")) == Array(texts(settingsL).dropFirst().prefix(2)), "a phone's settings card: no Text Size row (Aa is in row 1), no upright row")
 let laptopPhone = words(.laptop, F, device: "iPhone", first: true)
 check(texts(laptopPhone) == ["cmd, opt, ctrl and shift stay on for the next key or trackpad click: tap cmd, then C, to copy.",
                              "Tap with two fingers on the trackpad to right-click.",
@@ -927,11 +929,11 @@ check([L, P].allSatisfy { layout in all.allSatisfy { words($0, layout, thumbnail
 // Under VoiceOver: no touch card, no trackpad rows, and no gesture VoiceOver cannot make.
 let barVO = words(.bar, L, voiceOver: true)
 check(texts(barVO) == ["Each window has actions: close, minimize, full screen, and move left or right. Swipe up or down to hear them.",
-                       "Text size makes a window’s text on Mac mini larger or smaller. Swipe up or down on it.",
-                       "Keyboard types on Mac mini, on screen or with a hardware keyboard."], "bar under VoiceOver: \(texts(barVO))")
+                       "Keyboard types on Mac mini, on screen or with a hardware keyboard."], "bar sideways under VoiceOver (Aa is in Settings): \(texts(barVO))")
+check(texts(words(.bar, P, voiceOver: true)) == texts(barVO), "bar upright under VoiceOver: as sideways (Aa is in Settings)")
 let laptopVO = words(.laptop, P, voiceOver: true, first: true)
-check(laptopVO.rows.count == 2 && laptopVO.rows[0].spoken == "Command, Option, Control and Shift stay on for the next key: Command, then C, copies."
-      && laptopVO.rows[1].text == "The keyboard key types on Mac mini, on screen or with a hardware keyboard.", "laptop under VoiceOver: the keys' rows")
+check(laptopVO.rows.count == 1 && laptopVO.rows[0].spoken == "Command, Option, Control and Shift stay on for the next key: Command, then C, copies.",
+      "laptop under VoiceOver: the keys' row (the Keyboard button is the bar card's)")
 for layout in [L, P, F] {
     for step in TourPolicy.steps(layout, voiceOver: true) {
         for device in ["iPad", "iPhone"] {
@@ -1026,7 +1028,7 @@ do {
           "the 15 Pro with the Desktop: the 16:10 pane (377×235), the bar card the switch off's, not in the black under a 377×244 Desktop")
 }
 
-check(TourPolicy.spokenTitle(barL, index: 1, count: 3) == "Windows and Text Size, step 2 of 3", "VoiceOver hears the count")
+check(TourPolicy.spokenTitle(barL, index: 1, count: 3) == "Windows and Keyboard, step 2 of 3", "VoiceOver hears the count")
 check(TourPolicy.spokenTitle(laptopFirst, index: 0, count: 1) == "Keys and Trackpad", "a one-card run has no count")
 check(TourPolicy.skipTitle == "Skip" && TourPolicy.nextTitle == "Next" && TourPolicy.doneTitle == "Done", "the buttons")
 check(TourPolicy.skipHint == "Ends the tour. Take the Tour in Settings shows it again.", "Skip's hint")

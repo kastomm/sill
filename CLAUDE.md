@@ -8,6 +8,44 @@ Formerly winstream; the folder still carries the old name.
 
 ## Current step
 
+**Mouse mode, Aa into Settings sideways, Hide Keyboard (2026-10-23, on branch `display-sleep`,
+uncommitted until Aman says).** Aman: targets on the full-screen Desktop are too small for a finger;
+free bar space; a way to hide the keyboard. Device only, no wire change.
+- **Mouse mode** (`StreamScreen.mouseMode`, `Sill.mouseMode`, remembered on the device): sideways, the
+  bar's Mouse button after Keyboard lays the portrait pad's `TrackpadSurface` invisibly over the whole
+  picture (`TrackpadView` with `travel: TrackpadSurface.pictureTravel`, 1 frame per swipe; the pad
+  keeps `padTravel` 1.25), the direct-touch `InputOverlay` under it takes no touch
+  (`allowsHitTesting(!mouseMode)`; it keeps the keyboard, first responder is not hit testing), and the
+  sprite rule counts it as the pad showing (`setPointerLayout(portrait: isPortrait || mouseMode)`).
+  A finger moves the Mac's pointer, Sill's arrow shows where, tap clicks, two-finger tap right-clicks,
+  two fingers scroll, tap-tap-hold drags. The Pencil is a finger on the pad there (v1).
+- **Aa on an iPad is the Settings panel's** ("Text Size", a menu picker: Auto and 0.5× to 1.5×,
+  `HostSettingsPanel.textScale`, a binding the landscape screen and the halves pass; a phone's row 1
+  keeps its Aa button): sideways the bar's slot went to Mouse, upright (the halves) to a Keyboard
+  button (Aman, from a photo of the layout), so each bar keeps its button count (sideways Apps, strip,
+  Menus, Keyboard, Mouse, Desktop, Settings, `menusFit` 6, the Duo's `bookBar` 5; upright Apps, strip,
+  Menus, Keyboard, Desktop, Settings; Keyboard where Aa stood in both). The tour: an iPad's bar card is
+  "Windows and Keyboard" with targets `[.strip, .keyboard]`, and the Settings card's first row says Text
+  Size is there; `Tests/checks/tour` updated with it (the models' Keyboard at Aa's place). README and
+  support.html name both places.
+- **Return in the key row**: the halves' key row's keyboard cap (the Keyboard button is in the bar
+  above now) is a Return key (`HIDKey.returnKey` 0x28, SF Symbol "return"); the tour's laptop card
+  lost its "keyboard key" row (the bar card names Keyboard), its check with it.
+- **Hide Keyboard**: `InputOverlayView.inputAccessoryView`, a 44 pt bar with "Hide Keyboard" at its
+  right over the person's own software keyboard (an iPhone's has no dismiss key; sideways the bar's
+  Keyboard button can sit under the keyboard), nothing while the hardware keyboard holds it; hiding is
+  `toggleKeyboard`.
+- Also uncommitted from 2026-10-18 and since (committed by Aman in parts): a secondary click on a
+  thumbnail shows Close Window, Minimize and Full Screen (`WindowCommandMenu`, pointer touches only);
+  the thumbnail hold 0.5 s; a tap on the pad clicks only within 0.3 s and 6 pt (no ghost click after a
+  drag); tap, tap-and-hold drags (`tapDrag`, 0.5 s window), and the press-and-hold drag is gone; the
+  stream screen defers the bottom edge's system gesture.
+- **Unverified: nothing here compiled** (the session's shell has no Swift). For Aman: Mouse on and
+  off sideways (the arrow, a tap's click where it shows, the speed of a swipe across the picture:
+  `pictureTravel`), Text Size in Settings resizing a window as Aa did (the Desktop never), the tour's
+  bar and Settings cards sideways, Hide Keyboard on the iPhone's keyboard and under the iPad's, and
+  `Tests/checks/tour` (the landscape model's Keyboard at Aa's old place).
+
 **The Mac's menus from a secondary click (2026-10-17, on branch `display-sleep`).** Aman: "if you
 right click a window it shows the same menu". Device only. `MacMenuPopup.swift`: `MacMenuContextRule`
 (pure: the picture's top 32 pt, a window's title bar or the Desktop's menu bar, while the Mac sent

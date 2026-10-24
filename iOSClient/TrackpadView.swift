@@ -85,6 +85,9 @@ struct TrackpadView: UIViewRepresentable {
     let onModifiersConsumed: () -> Void
     var verticalSpan: CGFloat? = nil
     var sendGesture: (TrackpadGestures.Gesture, Int) -> Bool = { _, _ in false }
+    /// Frames per swipe across the surface (`TrackpadSurface.travel`): the pad's 1.25, or 1 when
+    /// the surface lies over the whole picture.
+    var travel: CGFloat = TrackpadSurface.padTravel
 
     func makeUIView(context: Context) -> TrackpadSurface {
         let view = TrackpadSurface(frame: .zero)
@@ -104,6 +107,7 @@ struct TrackpadView: UIViewRepresentable {
         uiView.latchedModifiers = latched
         uiView.verticalSpan = verticalSpan
         uiView.sendGesture = sendGesture
+        uiView.travel = travel
         // Called from a gesture callback, never from inside a SwiftUI update, so the binding write
         // it performs needs no hop to the next runloop turn.
         uiView.onModifiersConsumed = onModifiersConsumed
@@ -158,8 +162,12 @@ final class TrackpadSurface: UIView, UIGestureRecognizerDelegate {
 
     /// How far the pointer travels for a full swipe across the pad. The client does not know the
     /// Mac's size, so a real trackpad's pt-for-pt acceleration is not available to copy; 1.25
-    /// frames per swipe lands close enough to reach any corner in one comfortable stroke.
-    private static let travel: CGFloat = 1.25
+    /// frames per swipe lands close enough to reach any corner in one comfortable stroke on the
+    /// portrait pad (`padTravel`). Laid over the whole picture in landscape (StreamScreen's Mouse
+    /// mode), the surface is the picture's size, so a swipe is the frame itself: 1 (`pictureTravel`).
+    static let padTravel: CGFloat = 1.25
+    static let pictureTravel: CGFloat = 1
+    var travel: CGFloat = TrackpadSurface.padTravel
 
     // One-finger pointer motion: the tracker, from touch-down.
 
@@ -296,7 +304,7 @@ final class TrackpadSurface: UIView, UIGestureRecognizerDelegate {
     private func moveCursor(dx: CGFloat, dy: CGFloat) {
         guard bounds.width > 0, bounds.height > 0 else { return }
         catchUp()
-        pad.move(dx: Double(dx / bounds.width * Self.travel), dy: Double(dy / ySpan * Self.travel))
+        pad.move(dx: Double(dx / bounds.width * travel), dy: Double(dy / ySpan * travel))
         // The sprite first, since it is the feedback the finger is waiting for; then the Mac, whose
         // cursor still has to follow for clicks to land there. No rate limit needed here:
         // sendInput coalesces moves to one every 8 ms.

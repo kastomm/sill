@@ -651,6 +651,33 @@ final class InputOverlayView: UIView, UIKeyInput, UIGestureRecognizerDelegate {
     /// does) and no assistant groups; the system keyboard and its groups for the person's own.
     override var inputView: UIView? { holdsForHardwareKeyboard ? emptyInputView : nil }
 
+    /// Over the person's own software keyboard, a slim bar with Hide Keyboard at its right (Aman,
+    /// 2026-10-23): an iPhone's keyboard has no dismiss key of its own, and sideways on an iPad the
+    /// bar's Keyboard button can sit under the keyboard. Nothing while the hardware keyboard holds the
+    /// keyboard (nothing is drawn then). Hiding is what the Keyboard button does (`toggleKeyboard`).
+    override var inputAccessoryView: UIView? { holdsForHardwareKeyboard ? nil : hideKeyboardBar }
+
+    private lazy var hideKeyboardBar: UIView = {
+        let bar = UIInputView(frame: CGRect(x: 0, y: 0, width: 320, height: 44), inputViewStyle: .keyboard)
+        bar.autoresizingMask = .flexibleWidth
+        var config = UIButton.Configuration.plain()
+        config.image = UIImage(systemName: "keyboard.chevron.compact.down")
+        config.title = "Hide Keyboard"
+        config.imagePadding = 6
+        config.baseForegroundColor = .label
+        let button = UIButton(configuration: config, primaryAction: UIAction { [weak self] _ in
+            self?.keyboardProxy?.toggleKeyboard()
+        })
+        button.accessibilityLabel = "Hide the keyboard"
+        button.translatesAutoresizingMaskIntoConstraints = false
+        bar.addSubview(button)
+        NSLayoutConstraint.activate([
+            button.trailingAnchor.constraint(equalTo: bar.trailingAnchor, constant: -8),
+            button.centerYAnchor.constraint(equalTo: bar.centerYAnchor),
+        ])
+        return bar
+    }()
+
     private func applyInputViews(automatic: Bool) {
         holdsForHardwareKeyboard = automatic
         let item = inputAssistantItem

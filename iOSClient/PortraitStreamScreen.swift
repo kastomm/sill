@@ -8,6 +8,7 @@ import StreamProtocol
 enum HIDKey {
     static let escape: UInt16 = 0x29
     static let tab: UInt16 = 0x2B
+    static let returnKey: UInt16 = 0x28
     static let deleteBackward: UInt16 = 0x2A
     static let rightArrow: UInt16 = 0x4F
     static let leftArrow: UInt16 = 0x50
@@ -253,8 +254,9 @@ struct PortraitStreamScreen: View {
     /// Keyboard button (it is in the key row) but with the Aa control, whose ruler opens centred on
     /// it; the strip's end and the Desktop button fade while it is open. `width`: the bar's row.
     private func windowBar(width: CGFloat) -> some View {
-        // Apps, Menus, Aa, Desktop, Settings, and the strip: Menus only where the row holds it and
-        // still a whole thumbnail (not in a 320 pt Slide Over).
+        // Apps, Menus, Keyboard, Desktop, Settings, and the strip: Menus only where the row holds it
+        // and still a whole thumbnail (not in a 320 pt Slide Over). Aa is the Settings panel's here
+        // since 2026-10-23 (Aman: the layout wanted the Keyboard button in the bar, as sideways).
         let menusFit = MacMenuButton.fits(width: width, buttons: 5, buttonWidth: metrics.buttonWidth, gap: 12,
                                           thumbWidth: metrics.thumbWidth)
         return HStack(spacing: 12) {
@@ -274,18 +276,17 @@ struct PortraitStreamScreen: View {
                     .transition(.opacity)
             }
 
-            TextScaleControl(scale: $textScale, open: $scaleOpen,
-                             width: metrics.buttonWidth, height: metrics.buttonHeight,
-                             radius: metrics.buttonRadius, pointsPerStep: 36)
-                .tourTarget(.textSize)
+            barButton(open: keyboardShown, symbol: "keyboard", label: "Keyboard",
+                      accessibilityLabel: keyboardShown ? "Hide the keyboard" : "Show the keyboard",
+                      action: {
+                          setSettings(false, false)
+                          overlay.toggleKeyboard()
+                      })
+                .tourTarget(.keyboard)
 
             desktopButton()
-                .opacity(scaleOpen ? 0 : 1)
-                .allowsHitTesting(!scaleOpen)
 
             settingsButton()
-                .opacity(scaleOpen ? 0 : 1)
-                .allowsHitTesting(!scaleOpen)
         }
         .frame(height: metrics.barHeight)
         .animation(.easeOut(duration: 0.16), value: scaleOpen)
@@ -507,7 +508,7 @@ struct PortraitStreamScreen: View {
 
     private var settingsPanel: some View {
         HostSettingsPanel(client: client, close: { setSettings(false, true) }, pairThisDevice: pairThisDevice,
-                          takeTour: takeTour)
+                          takeTour: takeTour, textScale: metrics.phone ? nil : $textScale)   // the halves' Aa lives here; a phone's row 1 has it
     }
 
     /// The drawer's dim: a tap on it closes the drawer instead of clicking the Mac.
@@ -721,7 +722,8 @@ private enum Key {
 }
 
 /// The keys a Mac needs that a software keyboard does not offer. In the halves (`.full`): escape,
-/// tab, the four modifiers, the four arrows, the keyboard itself and Spotlight, twelve equal caps
+/// tab, the four modifiers, the four arrows, return (the keyboard cap's place until 2026-10-23, when
+/// the Keyboard button joined the bar above) and Spotlight, twelve equal caps
 /// across the screen at 48 pt tall, ≈49 pt wide at 710 pt — or, in the compact halves where twelve
 /// 44 pt caps do not fit across 472 pt, six and then six, 72 pt wide at 500 pt. On a phone
 /// (`.phone`): escape, tab and the four modifiers, six caps across the row; the Keyboard button is
@@ -751,7 +753,7 @@ private struct KeyRow: View {
         .arrow("chevron.down", HIDKey.downArrow, "Down arrow"),
         .arrow("chevron.up", HIDKey.upArrow, "Up arrow"),
         .arrow("chevron.right", HIDKey.rightArrow, "Right arrow"),
-        .keyboard,
+        .arrow("return", HIDKey.returnKey, "Return"),
         .spotlight,
     ]
 

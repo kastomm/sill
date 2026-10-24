@@ -104,6 +104,13 @@ struct StreamScreen: View {
     @ObservedObject var client: StreamClient
     @State private var drawerOpen = false
     @State private var keyboardShown = false
+    /// Mouse mode (Aman, 2026-10-23): sideways, the picture is a trackpad instead of a touch
+    /// surface, the same `TrackpadSurface` as the portrait pad laid invisibly over the whole
+    /// picture (a finger moves the Mac's pointer, Sill's arrow shows where it is, tap clicks there,
+    /// two fingers scroll, tap-tap-hold drags), for targets too small for a finger. The bar's Mouse
+    /// button, next to Keyboard, switches; remembered on this device. Nothing changes on the Mac.
+    @State private var mouseMode = UserDefaults.standard.bool(forKey: StreamScreen.mouseModeKey)
+    static let mouseModeKey = "Sill.mouseMode"
     /// Modifiers held down by the portrait key row until the next key, character or click uses
     /// them. Lives up here so rotating the iPad does not drop a half-typed shortcut.
     @State private var latched: KeyModifiers = []
@@ -252,8 +259,8 @@ struct StreamScreen: View {
                 .allowsHitTesting(!overlayShown && tour == nil)
                 // The pointer sprite follows the layout: the trackpad's arrow shows only in the
                 // laptop layout, and a rotation re-renders it at once; the Mac's arrow stays.
-                .onChange(of: DuoLayout.of(geo.size).isPortrait, initial: true) { _, portrait in
-                    client.setPointerLayout(portrait: portrait)
+                .onChange(of: DuoLayout.of(geo.size).isPortrait || mouseMode, initial: true) { _, pad in
+                    client.setPointerLayout(portrait: pad)
                 }
                 // The clipboard's chip on screen or not: its 20 s run only while it is, and VoiceOver
                 // is told when it first shows (ClipboardPolicy.chipCounts).
@@ -1035,10 +1042,11 @@ struct StreamScreen: View {
         let (bar, stripWidth) = plain.clearing(fold, width: width)
         return VStack(spacing: 0) {
             TopBar(client: client, metrics: bar, stripWidth: stripWidth, drawerOpen: $drawerOpen,
-                   keyboardShown: $keyboardShown,
+                   keyboardShown: $keyboardShown, mouseMode: $mouseMode,
                    textScale: $textScale, scaleOpen: $scaleOpen, windowMenu: $windowMenu,
                    settingsOpen: settingsOpen,
-                   // Apps, Menus, Aa, Keyboard, Desktop, Settings, and the strip.
+                   // Apps, Menus, Keyboard, Mouse, Desktop, Settings, and the strip (Aa is in the
+                   // Settings panel sideways since 2026-10-23, to make room for Mouse).
                    menusFit: MacMenuButton.fits(width: width - 2 * bar.padding, buttons: 6, buttonWidth: bar.buttonWidth,
                                                 gap: bar.gap, thumbWidth: bar.thumbWidth),
                    toggleKeyboard: { overlay.toggleKeyboard() },
@@ -1083,6 +1091,24 @@ struct StreamScreen: View {
                              onModifiersConsumed: { latched = [] },
                              sendGesture: { client.sendGesture($0, fingers: $1) },
                              menusClient: client, menusOpened: menusOpened, menusClosed: menusClosed)
+                    // Mouse mode: fingers go to the trackpad surface over it; the input view keeps
+                    // the keyboard (first responder is not hit testing) and a hardware pointer's
+                    // clicks still come through iPadOS's own cursor.
+                    .allowsHitTesting(!mouseMode)
+                if mouseMode {
+                    // The portrait pad's surface, invisible, the picture's size: a swipe across it
+                    // is a swipe across the frame (TrackpadSurface.pictureTravel).
+                    TrackpadView(send: { client.sendInput($0) },
+                                 setPointer: { client.setOwnPointer($0, from: .trackpad) },
+                                 feed: { let f = client.pointerFeedState; return (f.anchor, f.reseeds) },
+                                 onFingers: { client.trackpadFingers($0) },
+                                 latched: latched,
+                                 onModifiersConsumed: { latched = [] },
+                                 sendGesture: { client.sendGesture($0, fingers: $1) },
+                                 travel: TrackpadSurface.pictureTravel)
+                        .accessibilityLabel("Trackpad over the picture")
+                        .accessibilityHint("Drag to move the pointer. Tap to click, two fingers to scroll.")
+                }
             }
             .background(Palette.panel)
             .overlay(alignment: .top) { LinkLineView(text: shownLinkLine) }
@@ -1121,7 +1147,7 @@ struct StreamScreen: View {
                     .accessibilityHidden(true)
 
                 HostSettingsPanel(client: client, close: { setSettings(false) }, pairThisDevice: openPairingOverlay,
-                                  takeTour: takeTour)
+                                  takeTour: takeTour, textScale: $textScale)
                     .frame(width: bar.settingsWidth)
                     .frame(maxHeight: .infinity, alignment: .top)
                     .padding(.top, 8)
@@ -1228,6 +1254,8 @@ private struct TopBar: View {
     var stripWidth: CGFloat? = nil
     @Binding var drawerOpen: Bool
     @Binding var keyboardShown: Bool
+    /// Mouse mode: the picture a trackpad (StreamScreen.mouseMode).
+    @Binding var mouseMode: Bool
     @Binding var textScale: Double?
     @Binding var scaleOpen: Bool
     @Binding var windowMenu: UInt32?
@@ -1273,13 +1301,8 @@ private struct TopBar: View {
                     .transition(.opacity)
             }
 
-            // Text size: the host sizes the Mac window to the panel divided by this scale, so a
-            // bigger number means a smaller Mac window and bigger text here. The slider unfolds to
-            // the right, over the two buttons after it, which fade while it is open.
-            TextScaleControl(scale: $textScale, open: $scaleOpen,
-                             width: metrics.buttonWidth, height: metrics.buttonHeight,
-                             pointsPerStep: metrics.buttonHeight >= 60 ? 44 : 40)
-                .tourTarget(.textSize)
+            // Text size (Aa) is the Settings panel's sideways (HostSettingsPanel's Text Size row;
+            // the portrait bars keep their Aa button): the bar's slot went to Mouse.
 
             button(open: keyboardShown, symbol: "keyboard", label: "Keyboard",
                    accessibilityLabel: keyboardShown ? "Hide the keyboard" : "Show the keyboard",
@@ -1287,6 +1310,16 @@ private struct TopBar: View {
                 .opacity(scaleOpen ? 0 : 1)
                 .allowsHitTesting(!scaleOpen)
                 .tourTarget(.keyboard)
+
+            // Mouse mode: the picture a trackpad (StreamScreen.mouseMode), lit while it is.
+            button(open: mouseMode, symbol: "cursorarrow", label: "Mouse",
+                   accessibilityLabel: mouseMode ? "Use touch on the picture" : "Use the picture as a trackpad",
+                   action: {
+                       mouseMode.toggle()
+                       UserDefaults.standard.set(mouseMode, forKey: StreamScreen.mouseModeKey)
+                   })
+                .opacity(scaleOpen ? 0 : 1)
+                .allowsHitTesting(!scaleOpen)
 
             button(open: client.active == .desktop, symbol: "desktopcomputer", label: "Desktop",
                    accessibilityLabel: "Show the full Mac desktop",

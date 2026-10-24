@@ -110,7 +110,7 @@ Sill has layouts of its own.
 - **When the link can't keep up**, Sill for Mac notices that it is holding
   frames back and tells your device, which says so over the picture and, in
   its Settings, offers a quality the link can carry.
-- **Text size**: Aa on your device resizes the window you stream on your Mac,
+- **Text size**: Text Size (in Sill’s settings on an iPad; Aa on an iPhone) resizes the window you stream on your Mac,
   through Accessibility, so its text shows at the size you pick, and keeps it
   at that size while it streams. The window goes back to its own size and
   place when Sill stops showing it: you pick another window or the Desktop,

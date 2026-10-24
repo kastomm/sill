@@ -204,7 +204,8 @@ enum TourPolicy {
         switch topic {
         case .touch: return [.stream]
         case .bar where layout == .phone && !thumbnails: return [.apps, .textSize, .keyboard]
-        case .bar: return layout == .portrait ? [.strip, .textSize] : [.strip, .textSize, .keyboard]
+        case .bar where layout != .phone: return [.strip, .keyboard]   // an iPad's bars: Aa is the Settings panel's (2026-10-23)
+        case .bar: return [.strip, .textSize, .keyboard]
         case .settings: return [.settings]
         case .laptop: return [.keys, .trackpad]
         }
@@ -546,9 +547,13 @@ enum TourPolicy {
                     ? row("magnifyingglass", [strong("Apps"), plain(" lists the apps on \(mac). Choose an open one again for its next window.")])
                     : row("magnifyingglass", [strong("Apps"), plain(" lists the apps on \(mac): tap an open one again for its next window.")])
             }
-            // The Keyboard button is the bar's sideways and a phone's upright; the halves' keyboard
-            // is a cap, which the laptop card names.
-            if layout != .portrait { rows.append(keyboardRow) }
+            // An iPad's bars have no Aa (text size is the Settings panel's, which that card says; the
+            // slot is Mouse's sideways and Keyboard's upright, 2026-10-23): the card is about windows
+            // and the keyboard. A phone's row 1 keeps Aa.
+            if layout != .phone { rows.removeAll { $0.symbol == "textformat.size" } }
+            // The Keyboard button is in every bar (the halves' key row has a keyboard cap too, which
+            // the laptop card names).
+            rows.append(keyboardRow)
             let hint: String
             switch layout {
             case .landscape: hint = "In the bar at the top, after Apps."
@@ -556,10 +561,14 @@ enum TourPolicy {
             case .phone where !thumbnails: hint = "Under the picture, in the row of buttons: Apps, Aa and Keyboard."
             case .phone: hint = "Under the picture: Aa and Keyboard in the first row, the windows in the second."
             }
-            return TourCopy(title: "Windows and Text Size", subtitle: nil, rows: rows, hint: hint)
+            return TourCopy(title: layout == .phone ? "Windows and Text Size" : "Windows and Keyboard", subtitle: nil, rows: rows, hint: hint)
         case .settings:
             var rows = [row("xmark.circle", [strong("Disconnect"), plain(" is at the bottom of Settings.")]),
                         row("questionmark.circle", [strong("Take the Tour"), plain(" is there too, to see this again.")])]
+            // On an iPad, Aa lives here (the bar's slot is Mouse's sideways, Keyboard's upright).
+            if layout != .phone {
+                rows.insert(row("textformat.size", [strong("Text Size"), plain(" is in Settings: it makes a window’s text on \(mac) larger or smaller.")]), at: 0)
+            }
             if layout == .landscape {
                 let turn = keysOnItsSide ? "Turn your \(device) on its side" : "Hold your \(device) upright"
                 rows.append(row(iPad ? "ipad" : "iphone", [strong(turn), plain(" for a trackpad and keys.")]))
@@ -575,10 +584,8 @@ enum TourPolicy {
                 rows = [row("command", [strong("cmd, opt, ctrl and shift"), plain(" stay on for the next key or trackpad click: tap cmd, then C, to copy.")],
                             spoken: "Command, Option, Control and Shift stay on for the next key or trackpad click: tap Command, then C, to copy.")]
             }
-            // A phone's keyboard is row 1's button, which the bar card names; the halves' is a cap.
-            if layout != .phone {
-                rows.append(row("keyboard", [strong("The keyboard key"), plain(" types on \(mac), on screen or with a hardware keyboard.")]))
-            }
+            // The Keyboard button is in every bar, which the bar card names (the halves' key row had
+            // a keyboard cap until 2026-10-23; return is there now).
             if !voiceOver {
                 rows.append(row("cursorarrow.click.2", [strong("Tap with two fingers"), plain(" on the trackpad to right-click.")]))
                 rows.append(row("hand.draw", [strong("Tap, then tap and hold"), plain(" the trackpad, "), strong("then drag"), plain(", to select text or move things.")]))
