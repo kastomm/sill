@@ -220,6 +220,26 @@ struct StreamScreen: View {
     #endif
 
     var body: some View {
+        // The rail on the iPhone Duo's cover (docs/cover-rail-plan.md): held upright, the cover gives
+        // Sill a trailing safe-area inset of 84 pt, the camera and clock strip, which the system apps
+        // use for their toolbars. On a phone that strip is taken into the stream screen and handed to
+        // the phone's arrangement as its rail (PhonePortraitLayout.rail); everywhere else (no strip
+        // that wide upright: a notch's insets are sideways) the screen keeps its safe area as before.
+        GeometryReader { outer in
+            let rail = DuoLayout.phoneArrangement
+                ? PhonePortraitLayout.rail(trailingInset: outer.safeAreaInsets.trailing, size: outer.size) : 0
+            screen(rail: rail)
+                .ignoresSafeArea(edges: rail > 0 ? [.bottom, .trailing] : .bottom)
+                #if DEBUG
+                .onChange(of: rail, initial: true) { _, now in
+                    if now > 0 { print("rail: the cover's \(Int(now)) pt strip at the right holds Keyboard, Mouse, Apps, Desktop and Settings") }
+                }
+                #endif
+        }
+    }
+
+    /// The stream screen proper; `rail` is the cover's strip it takes in at the trailing edge (0 for none).
+    private func screen(rail: CGFloat) -> some View {
         // Which layout, and at which size — see `DuoLayout` for the thresholds and the Duo posture
         // behind each one.
         GeometryReader { geo in
@@ -251,7 +271,8 @@ struct StreamScreen: View {
                     case .innerPortrait:
                         portrait(metrics: .regular)
                     case .outerPortrait:
-                        portrait(metrics: DuoLayout.phoneArrangement ? .phone : .compact, largerKeyboard: largerKeyboard)
+                        portrait(metrics: DuoLayout.phoneArrangement ? .phone : .compact, largerKeyboard: largerKeyboard,
+                                 rail: rail)
                     }
                 }
                 // Under the pairing overlay and the tour nothing takes a touch: not the bar, and
@@ -357,7 +378,6 @@ struct StreamScreen: View {
         // panel away. (Opening the panel closes them, the drawer and the keyboard.)
         .onChange(of: scaleOpen) { _, open in if open { setSettings(false) } }
         .onChange(of: windowMenu) { _, menu in if menu != nil { setSettings(false) } }
-        .ignoresSafeArea(edges: .bottom)
         .onAppear {
             // A fresh connection starts on the Desktop (the client asks for it as soon as the host
             // reports nothing streaming), so the drawer stays closed until the user opens it.
@@ -1057,7 +1077,7 @@ struct StreamScreen: View {
     }
 
     /// `largerKeyboard`: Larger Picture's keyboard on a phone (see `body`), nil otherwise.
-    private func portrait(metrics: PortraitMetrics, largerKeyboard: CGFloat? = nil) -> some View {
+    private func portrait(metrics: PortraitMetrics, largerKeyboard: CGFloat? = nil, rail: CGFloat = 0) -> some View {
         PortraitStreamScreen(client: client, metrics: metrics, drawerOpen: $drawerOpen,
                              keyboardShown: $keyboardShown,
                              textScale: $textScale, scaleOpen: $scaleOpen, windowMenu: $windowMenu,
@@ -1070,7 +1090,8 @@ struct StreamScreen: View {
                              pairThisDevice: openPairingOverlay,
                              linkLine: shownLinkLine,
                              takeTour: takeTour,
-                             largerKeyboard: largerKeyboard)
+                             largerKeyboard: largerKeyboard,
+                             rail: rail, mouseMode: $mouseMode)
     }
 
     private var streamShape: RoundedRectangle { RoundedRectangle(cornerRadius: 12, style: .continuous) }

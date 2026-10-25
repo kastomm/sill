@@ -169,6 +169,12 @@ struct PortraitStreamScreen: View {
     /// switch on: `PhonePortraitLayout.largerPicture(switchOn:streaming:)`); nil for the phone's usual
     /// arrangement (the switch off, the Desktop or nothing streaming), and in the halves.
     var largerKeyboard: CGFloat? = nil
+    /// The rail on the iPhone Duo's cover (docs/cover-rail-plan.md): the camera strip's width at the
+    /// trailing edge, inside this screen's size, whose column holds Keyboard, Mouse, Apps, Desktop and
+    /// Settings (`PhonePortraitLayout.railButtons`); 0 for none (every iPhone, the halves).
+    var rail: CGFloat = 0
+    /// Mouse mode (StreamScreen.mouseMode): with the rail, its button, and the picture a trackpad.
+    var mouseMode: Binding<Bool>? = nil
 
     private var streamShape: RoundedRectangle { RoundedRectangle(cornerRadius: 12, style: .continuous) }
     /// The Duo's fold across this screen (StreamScreen, iOS 27.1): where the halves split.
@@ -177,7 +183,7 @@ struct PortraitStreamScreen: View {
     var body: some View {
         GeometryReader { geo in
             if metrics.phone {
-                phone(PhonePortraitLayout(size: geo.size, keyboard: largerKeyboard), origin: geo.frame(in: .global).origin)
+                phone(PhonePortraitLayout(size: geo.size, keyboard: largerKeyboard, rail: rail), origin: geo.frame(in: .global).origin)
             } else {
                 halves(geo.size)
             }
@@ -329,8 +335,12 @@ struct PortraitStreamScreen: View {
         let larger = layout.largerPicture
         // In reading order, which is also top to bottom: the picture, row 1, the strip (none with
         // Larger Picture), the key row, the trackpad.
-        let rects: [CGRect] = larger ? [layout.pane(video: client.videoSize), layout.row1, layout.keys, layout.trackpad]
+        // With the rail (the Duo's cover) there is no row 1: the picture, the strip, the keys, the
+        // trackpad, and then the rail's buttons, which VoiceOver reads last.
+        let rects: [CGRect] = layout.hasRail ? [layout.picture, layout.strip, layout.keys, layout.trackpad]
+                            : larger ? [layout.pane(video: client.videoSize), layout.row1, layout.keys, layout.trackpad]
                                      : [layout.picture, layout.row1, layout.strip, layout.keys, layout.trackpad]
+        let mouse = layout.hasRail && (mouseMode?.wrappedValue ?? false)
         return ZStack(alignment: .topLeading) {
             Color.black
 
@@ -340,8 +350,10 @@ struct PortraitStreamScreen: View {
             // past row 1's leading edge; the strip goes while either is open, so nothing cut shows
             // beside them.
             PhoneRows(size: layout.size, rects: rects) {
-                picturePane(measured: false).accessibilityHidden(drawerOpen)
-                phoneRow1(layout, menus: larger && client.menus.hasMenus)
+                picturePane(measured: false, mouse: mouse).accessibilityHidden(drawerOpen)
+                if !layout.hasRail {
+                    phoneRow1(layout, menus: larger && client.menus.hasMenus)
+                }
                 if !larger {
                     phoneRow2(layout)
                         .opacity(drawerOpen || settingsOpen ? 0 : 1)
@@ -349,6 +361,15 @@ struct PortraitStreamScreen: View {
                 }
                 keyRow(.phone).accessibilityHidden(drawerOpen)
                 trackpad(verticalSpan: span).accessibilityHidden(drawerOpen)
+            }
+
+            // The rail: five round buttons in the cover's camera strip, past the page (and past the
+            // dim and the catcher, so it stays live while the drawer or the panel is open, as row 1
+            // did). Drawn after the rows and read after them.
+            if layout.hasRail {
+                ForEach(PhonePortraitLayout.RailButton.allCases, id: \.rawValue) { button in
+                    railButton(button, open: mouse).placed(layout.railButtons[button.rawValue], in: layout.size)
+                }
             }
 
             if drawerOpen {
@@ -454,7 +475,10 @@ struct PortraitStreamScreen: View {
     /// its size is the panel the video is fitted into, which the viewport sends the Mac (the halves);
     /// a phone sends its layout's picture instead (`phone`), the same rect or, with Larger Picture,
     /// the room this pane sits at the top of.
-    private func picturePane(measured: Bool) -> some View {
+    /// `mouse`: Mouse mode over this pane (the rail's button): the portrait pad's surface, invisible,
+    /// the picture's size, as the landscape screen lays it (StreamScreen.contentArea); the direct-touch
+    /// overlay under it takes no touch but keeps the keyboard.
+    private func picturePane(measured: Bool, mouse: Bool = false) -> some View {
         ZStack {
             StreamView(client: client)
             InputOverlay(videoSize: client.videoSize,
@@ -466,6 +490,19 @@ struct PortraitStreamScreen: View {
                          onModifiersConsumed: { latched = [] },
                          sendGesture: { client.sendGesture($0, fingers: $1) },
                          menusClient: client, menusOpened: menusOpened, menusClosed: menusClosed)
+                .allowsHitTesting(!mouse)
+            if mouse {
+                TrackpadView(send: { client.sendInput($0) },
+                             setPointer: { client.setOwnPointer($0, from: .trackpad) },
+                             feed: { let f = client.pointerFeedState; return (f.anchor, f.reseeds) },
+                             onFingers: { client.trackpadFingers($0) },
+                             latched: latched,
+                             onModifiersConsumed: { latched = [] },
+                             sendGesture: { client.sendGesture($0, fingers: $1) },
+                             travel: TrackpadSurface.pictureTravel)
+                    .accessibilityLabel("Trackpad over the picture")
+                    .accessibilityHint("Drag to move the pointer. Tap to click, two fingers to scroll.")
+            }
         }
         .background(Palette.panel)
         .overlay(alignment: .top) { LinkLineView(text: linkLine) }
@@ -508,7 +545,7 @@ struct PortraitStreamScreen: View {
 
     private var settingsPanel: some View {
         HostSettingsPanel(client: client, close: { setSettings(false, true) }, pairThisDevice: pairThisDevice,
-                          takeTour: takeTour, textScale: metrics.phone ? nil : $textScale)   // the halves' Aa lives here; a phone's row 1 has it
+                          takeTour: takeTour, textScale: metrics.phone && rail == 0 ? nil : $textScale)   // the halves' and the rail's Aa live here; a phone's row 1 has it
     }
 
     /// The drawer's dim: a tap on it closes the drawer instead of clicking the Mac.
@@ -551,6 +588,47 @@ struct PortraitStreamScreen: View {
             .tourTarget(.settings)
     }
 
+    /// One of the rail's buttons (docs/cover-rail-plan.md): round, the symbol alone (the strip is
+    /// 84 pt, so no label; the accessibility label and the Large Content Viewer say which), lit while
+    /// what it opens is open, as the bar's buttons are. `open`: Mouse mode, for its button.
+    private func railButton(_ button: PhonePortraitLayout.RailButton, open mouse: Bool) -> some View {
+        let size = PhonePortraitLayout.railButton
+        let symbol: String, label: String, accessibilityLabel: String, lit: Bool, action: () -> Void
+        switch button {
+        case .keyboard:
+            symbol = "keyboard"; label = "Keyboard"; lit = keyboardShown
+            accessibilityLabel = keyboardShown ? "Hide the keyboard" : "Show the keyboard"
+            action = { setSettings(false, false); overlay.toggleKeyboard() }
+        case .mouse:
+            symbol = "cursorarrow"; label = "Mouse"; lit = mouse
+            accessibilityLabel = mouse ? "Use touch on the picture" : "Use the picture as a trackpad"
+            action = {
+                guard let mouseMode else { return }
+                mouseMode.wrappedValue.toggle()
+                UserDefaults.standard.set(mouseMode.wrappedValue, forKey: StreamScreen.mouseModeKey)
+            }
+        case .apps:
+            symbol = "magnifyingglass"; label = "Apps"; lit = drawerOpen
+            accessibilityLabel = drawerOpen ? "Close the app list" : "Open the app list"
+            action = { setSettings(false, false); withAnimation(.easeOut(duration: 0.18)) { drawerOpen.toggle() } }
+        case .desktop:
+            symbol = "desktopcomputer"; label = "Desktop"; lit = client.active == .desktop
+            accessibilityLabel = "Show the full Mac desktop"
+            action = { client.select(.desktop) }
+        case .settings:
+            symbol = "gearshape"; label = "Settings"; lit = settingsOpen
+            accessibilityLabel = settingsOpen ? "Close settings" : "Settings for \(client.macName.isEmpty ? "the Mac" : client.macName)"
+            action = { setSettings(!settingsOpen, true) }
+        }
+        return BarButton(open: lit, width: size, height: size, radius: size / 2, accessibilityLabel: accessibilityLabel, action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: metrics.buttonIcon))
+                .foregroundStyle(lit ? Palette.accent : Palette.text)
+        }
+        .accessibilityShowsLargeContentViewer { Label(label, systemImage: symbol) }
+        .modifier(RailTourTarget(button: button))
+    }
+
     /// A bar button at the board's size, or at `width` (the phone's share of its row). On the phone
     /// the symbol sits in a fixed box, so the five labels share one line, and the labels stay on one
     /// line, shrinking a little before they would wrap (Bold Text at 320 pt); the row does not grow
@@ -588,6 +666,21 @@ struct PortraitStreamScreen: View {
                         .foregroundStyle(open ? Palette.accent : Palette.barLabel)
                 }
             }
+        }
+    }
+}
+
+/// The rail's tour targets: Keyboard, Apps and Settings are the same targets as row 1's buttons
+/// were, so the tour's cards point at them in the strip; Mouse and Desktop are no target.
+private struct RailTourTarget: ViewModifier {
+    let button: PhonePortraitLayout.RailButton
+
+    @ViewBuilder func body(content: Content) -> some View {
+        switch button {
+        case .keyboard: content.tourTarget(.keyboard)
+        case .apps: content.tourTarget(.apps)
+        case .settings: content.tourTarget(.settings)
+        case .mouse, .desktop: content
         }
     }
 }

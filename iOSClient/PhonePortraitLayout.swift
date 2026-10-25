@@ -23,6 +23,16 @@ import CoreGraphics
 /// still a function of the screen's size, the keyboard's height and the switch (with what streams)
 /// alone; the frame and the trackpad's span also of the picture's shape.
 ///
+/// The rail (docs/cover-rail-plan.md; Aman, 2026-10-24): on the iPhone Duo's cover upright, the
+/// 84 pt camera strip at the right (the safe area's trailing inset, which the stream screen then
+/// takes in: `size` is the whole display, `rail` the strip's width) holds a column of round buttons
+/// where Mail and the other system apps put theirs: Keyboard and Mouse under the clock, and by the
+/// thumb Apps, Desktop and Settings (`railButtons`, in `RailButton` order). Row 1 is gone (a row of
+/// no height, so the thumbnails follow the picture) and its height goes to the trackpad; Aa is the
+/// Settings panel's there, as on an iPad. The drawer and the panel then open over the picture from
+/// the top, and the dim covers the whole page but the rail, which stays live as row 1 did. Without a
+/// rail (`rail` 0: every iPhone, the cover on its side) nothing here changes.
+///
 /// `DuoLayout.outerPortrait` on an iPhone draws this (`DuoLayout.phoneArrangement`): every iPhone
 /// upright, and the Duo's outer display upright; an iPad window that narrow keeps the compact halves.
 /// The vertical rhythm is the approved mockup's, with the compact halves' paddings and gaps: 24 pt
@@ -103,11 +113,33 @@ struct PhonePortraitLayout: Equatable {
     /// Row 3's caps: esc, tab, ctrl, opt, cmd, shift.
     static let capCount = 6
 
+    // MARK: The rail
+
+    /// The rail's buttons, top to bottom: two under the clock, three by the thumb.
+    enum RailButton: Int, CaseIterable { case keyboard, mouse, apps, desktop, settings }
+    /// A rail button: round, a touch target, as Mail's in the strip.
+    static let railButton: CGFloat = 44
+    /// Between the rail's buttons, and from the clock's block to the first.
+    static let railGap: CGFloat = 12
+    /// The cover's clock, battery and camera block at the strip's top, as the probe measured it with
+    /// the status bar showing (docs/iphone-duo-plan.md: the box (382, 0, 84×170)); the rail begins
+    /// under it. Hidden, the box is 82 pt; the rail keeps the same start, so nothing moves.
+    static let railTop: CGFloat = 170
+    /// Under the rail's last button to the display's bottom edge: the home indicator's 34 and a gap.
+    static let railBottom: CGFloat = 46
+    /// A strip narrower than this is a notch's side inset, not the cover's camera strip: no rail.
+    static let minRail: CGFloat = 60
+
     /// The stream screen's size, which everything below is measured in (origin at its top left).
     let size: CGSize
     /// Larger Picture's keyboard: the software keyboard's height the rows are kept above, which makes
     /// this the Larger Picture arrangement; nil for the standard one.
     let keyboard: CGFloat?
+    /// The rail's width at the trailing edge (the cover's camera strip, taken into `size`), or 0 for
+    /// none: then the rows span `size` as before.
+    let rail: CGFloat
+    /// The rail's buttons, in `RailButton` order, in `size`'s space; none without a rail.
+    let railButtons: [CGRect]
     /// The picture's pane: the frame the video is drawn in, aspect-fit, and the viewport the Mac
     /// fits windows to. With Larger Picture, the picture's room: the viewport still, but the frame is
     /// the picture's own shape inside it (`pane(video:)`).
@@ -158,10 +190,45 @@ struct PhonePortraitLayout: Equatable {
     /// Whether this is the Larger Picture arrangement (no thumbnails' row).
     var largerPicture: Bool { keyboard != nil }
 
+    /// Whether the rail holds the buttons (the cover upright): row 1 is then a row of no height.
+    var hasRail: Bool { rail > 0 }
+
     /// Everything but the picture and the trackpad, top to bottom: 240 pt.
     static var fixedHeight: CGFloat {
         margin + margin + underPicture + band + buttonHeight + band + rowGap + stripHeight + rowGap + capHeight
             + rowGap + bottom
+    }
+
+    /// Row 1's whole band, which the rail takes away: 72 pt.
+    static var row1Band: CGFloat { underPicture + band + buttonHeight + band }
+
+    /// The same with the rail: 168 pt (no row 1).
+    static func fixedHeight(rail: Bool) -> CGFloat { rail ? fixedHeight - row1Band : fixedHeight }
+
+    /// The rail's width for a stream screen whose trailing safe-area inset is `trailingInset`, held
+    /// upright (`size`): the cover's camera strip, 60 pt or more; 0 for a notch's side inset, a
+    /// screen on its side, or none.
+    static func rail(trailingInset: CGFloat, size: CGSize) -> CGFloat {
+        size.height > size.width && trailingInset >= minRail ? trailingInset : 0
+    }
+
+    /// Where the rail's five buttons go in a strip `rail` wide at the trailing edge of `size`: round,
+    /// centred across the strip; Keyboard and Mouse from under the clock's block, Apps, Desktop and
+    /// Settings up from above the home indicator. On a display too short for both groups (none the
+    /// cover is) the lower group gives way upward and the two may touch. Whole points.
+    static func railButtons(rail: CGFloat, size: CGSize) -> [CGRect] {
+        guard rail > 0 else { return [] }
+        let x = (size.width - rail + (rail - railButton) / 2).rounded(.down)
+        let step = railButton + railGap
+        let topStart = railTop + railGap
+        let lowerCount = 3
+        let lowerHeight = CGFloat(lowerCount) * railButton + CGFloat(lowerCount - 1) * railGap
+        let lowerStart = max(topStart + 2 * step, (size.height - railBottom - lowerHeight).rounded(.down))
+        return RailButton.allCases.map { button in
+            let i = button.rawValue
+            let y = i < 2 ? topStart + CGFloat(i) * step : lowerStart + CGFloat(i - 2) * step
+            return CGRect(x: x, y: y, width: railButton, height: railButton)
+        }
     }
 
     /// Larger Picture: everything but the picture above the keyboard's top, top to bottom: 152 pt
@@ -172,33 +239,50 @@ struct PhonePortraitLayout: Equatable {
 
     /// `keyboard`: Larger Picture above a software keyboard this tall (`PhonePortraitLayout.keyboard(for:…)`),
     /// or nil for the standard arrangement.
-    init(size: CGSize, keyboard: CGFloat? = nil) {
+    /// `rail`: the cover's camera strip at the trailing edge, inside `size` (`rail(trailingInset:size:)`);
+    /// 0 for none. With a rail, Larger Picture never applies (the Duo has a hinge: `keyboard(for:…)`),
+    /// and `keyboard` is ignored.
+    init(size: CGSize, keyboard: CGFloat? = nil, rail: CGFloat = 0) {
         self.size = size
+        let rail = max(0, min(rail, size.width))
+        self.rail = rail
+        let keyboard = rail > 0 ? nil : keyboard
         self.keyboard = keyboard
-        let width = size.width, height = size.height
+        // The page the rows span: the whole screen, or what is left beside the rail.
+        let width = size.width - rail, height = size.height
+        railButtons = Self.railButtons(rail: rail, size: size)
 
         // The picture: full width less the margins, 16:10, unless the trackpad would drop under
         // its least height; then the picture gives way (to nothing, at worst).
         let pictureWidth = max(0, width - 2 * Self.margin)
         let natural = (pictureWidth / Self.aspect).rounded(.down)
-        let pictureHeight = min(natural, max(0, height - Self.fixedHeight - Self.minTrackpad))
+        let pictureHeight = min(natural, max(0, height - Self.fixedHeight(rail: rail > 0) - Self.minTrackpad))
         // Larger Picture: every point above the keyboard but the rows', in whole points; the
         // keyboard's footprint is never less than the least trackpad and its margin.
         let footprint = keyboard.map { max($0, Self.minTrackpad + Self.bottom) }
         let largerHeight = footprint.map { max(0, (height - $0 - Self.largerFixedHeight).rounded(.down)) }
         picture = CGRect(x: Self.margin, y: Self.margin, width: pictureWidth, height: largerHeight ?? pictureHeight)
 
-        // Row 1: five equal buttons across the row, `gap` apart, centred in their band.
+        // Row 1: five equal buttons across the row, `gap` apart, centred in their band. With the
+        // rail, a row of no height right under the picture's margin: its buttons are the rail's, and
+        // the strip follows the picture (`rowGap` under the margin, its thumbnails 6 pt in: 24 pt
+        // from the picture, as from row 1's buttons before).
         let rowWidth = max(0, width - 2 * Self.side)
-        row1 = CGRect(x: Self.side, y: picture.maxY + Self.margin + Self.underPicture + Self.band,
-                      width: rowWidth, height: Self.buttonHeight)
+        if rail > 0 {
+            row1 = CGRect(x: Self.side, y: picture.maxY + Self.margin, width: rowWidth, height: 0)
+        } else {
+            row1 = CGRect(x: Self.side, y: picture.maxY + Self.margin + Self.underPicture + Self.band,
+                          width: rowWidth, height: Self.buttonHeight)
+        }
         buttons = Self.split(row1, count: Button.allCases.count, gap: Self.gap)
 
         let settingsButton = buttons[Button.settings.rawValue]
         if footprint == nil {
             // Row 2: the strip, under row 1's band, wider than the rows by its own padding. With the
             // Mac's menus, the Menus button under Settings, and the strip up to `gap` before it.
-            strip = CGRect(x: Self.side - Self.stripInset, y: row1.maxY + Self.band + Self.rowGap,
+            // With the rail, under the picture's margin (row 1 has no band).
+            let stripTop = rail > 0 ? row1.maxY + Self.rowGap : row1.maxY + Self.band + Self.rowGap
+            strip = CGRect(x: Self.side - Self.stripInset, y: stripTop,
                            width: max(0, width - 2 * (Self.side - Self.stripInset)), height: Self.stripHeight)
             menus = CGRect(x: settingsButton.minX, y: strip.minY + (Self.stripHeight - Self.buttonHeight) / 2,
                            width: settingsButton.width, height: Self.buttonHeight)
@@ -237,7 +321,9 @@ struct PhonePortraitLayout: Equatable {
         // row 1: under row 1 is the keyboard's footprint, so a keyboard up (the Mac's, or the one the
         // drawer's own search field brings) would leave only the search field in view there. The
         // panel stays under row 1: opening it takes the keyboard down, and the picture stays in view.
-        let panelTop = row1.maxY + Self.panelGap
+        // With the rail (no row 1) both open over the picture from the top, and the panel grows from
+        // the page's top-trailing corner, beside the rail.
+        let panelTop = rail > 0 ? Self.margin : row1.maxY + Self.panelGap
         let panelHeight = max(0, height - Self.bottom - panelTop)
         if footprint == nil {
             drawer = CGRect(x: Self.side, y: panelTop, width: rowWidth, height: panelHeight)
@@ -245,10 +331,16 @@ struct PhonePortraitLayout: Equatable {
             drawer = CGRect(x: Self.side, y: Self.margin, width: rowWidth, height: max(0, row1.minY - Self.panelGap - Self.margin))
         }
         settings = CGRect(x: Self.side, y: panelTop, width: rowWidth, height: panelHeight)
-        settingsAnchor = CGPoint(x: width > 0 ? settings.maxX / width : 1, y: height > 0 ? settings.minY / height : 0)
+        settingsAnchor = CGPoint(x: size.width > 0 ? settings.maxX / size.width : 1, y: height > 0 ? settings.minY / height : 0)
 
-        dim = [CGRect(x: 0, y: 0, width: width, height: row1.minY),
-               CGRect(x: 0, y: row1.maxY, width: width, height: max(0, height - row1.maxY))]
+        // The dim and the tap catcher: everything but row 1's buttons; with the rail the whole page
+        // (the rail, past it, stays live as row 1 did).
+        if rail > 0 {
+            dim = [CGRect(x: 0, y: 0, width: width, height: height)]
+        } else {
+            dim = [CGRect(x: 0, y: 0, width: width, height: row1.minY),
+                   CGRect(x: 0, y: row1.maxY, width: width, height: max(0, height - row1.maxY))]
+        }
     }
 
     /// The frame the video is drawn in, for a picture of `video`'s shape (pixels; zero before the

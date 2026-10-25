@@ -8,6 +8,25 @@ Formerly winstream; the folder still carries the old name.
 
 ## Current step
 
+**The rail on the iPhone Duo's cover (2026-10-24, on branch `display-sleep`, uncommitted until Aman
+says; docs/cover-rail-plan.md).** Aman, on his Duo (iOS 27.1, Xcode 27.1): "move the keyboard and
+mouse and search buttons to the duo side like on native apps", from a photo of Mail's toolbar in
+the cover's 84 pt camera strip. Device only, no wire change.
+- The stream screen takes the trailing safe-area inset in on a phone held upright when it is a strip
+  of 60 pt or more (`PhonePortraitLayout.rail(trailingInset:size:)`; no iPhone has one upright) and
+  hands its width to `PhonePortraitLayout(size:keyboard:rail:)`: the rows span the 382 pt page beside
+  it exactly as before, row 1 is a row of no height (its 72 pt band goes to the trackpad), and five
+  44 pt round buttons stand in the strip (`railButtons`, `RailButton`): Keyboard and Mouse from 12
+  under the clock's block (`railTop` 170), Apps, Desktop and Settings up from 12 above the home
+  indicator (`railBottom` 46). Aa is the Settings panel's there (as on an iPad); Mouse mode reaches
+  the phone's picture pane (the rail only). The drawer and the panel open over the picture; the dim
+  covers the page and leaves the rail live. The tour's Keyboard, Apps and Settings targets move to
+  the rail; its words are still row 1's (a task of its own). `Tests/checks/phone-portrait`: 18
+  checks, a grid, 13 mutants (R1–R13); the laptop split Aman asked for is PR #47's (b1), already
+  built.
+- **Unverified: nothing here compiled** (the session's shell has no Swift). For Aman: the plan's
+  U1–U8 on the Duo's cover, and that an iPad and an iPhone look as before.
+
 **Mouse mode, Aa into Settings sideways, Hide Keyboard (2026-10-23, on branch `display-sleep`,
 uncommitted until Aman says).** Aman: targets on the full-screen Desktop are too small for a finger;
 free bar space; a way to hide the keyboard. Device only, no wire change.

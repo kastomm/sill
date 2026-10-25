@@ -6,6 +6,8 @@
 // height from the width + 1 to 1,400: everything inside the screen and in order, the gaps, five
 // equal buttons and six equal caps across the row, the picture 16:10 unless the trackpad would drop
 // under 120 pt, the trackpad's span, the ruler, the drawer and the panel across row 1, the dim.
+// Then the rail on the iPhone Duo's cover (docs/cover-rail-plan.md): the page beside the strip, the five
+// buttons in it, and a grid of strips and heights.
 //   swiftc -O iOSClient/PhonePortraitLayout.swift Tests/checks/phone-portrait/main.swift -o .build/checks/phone-portrait/check && .build/checks/phone-portrait/check
 import CoreGraphics
 import Foundation
@@ -757,6 +759,78 @@ for keyboard: CGFloat in [233, 301, 310, 320] {
 for rule in largerRules {
     check("Larger Picture grid (\(largerSizes) layouts): \(rule.name)" + (rule.firstFailure.map { " — first failure at \($0)" } ?? ""), rule.firstFailure == nil)
 }
+
+// MARK: - The rail on the iPhone Duo's cover (docs/cover-rail-plan.md)
+//
+// The cover upright is 466×678 pt with the camera strip (84) at the right (docs/iphone-duo-plan.md);
+// the stream screen takes the strip in and hands its width as `rail`, so the rows span the 382 pt
+// page beside it exactly as before, row 1 is gone, and the five buttons stand in the strip.
+
+let cover = CGSize(width: 466, height: 678)
+let railed = L(size: cover, rail: 84)
+let plain = L(size: CGSize(width: 382, height: 678))
+check("the rail: the page is 382 wide, the picture as without a rail (8, 8, 366×228)",
+      railed.rail == 84 && railed.hasRail && near(railed.picture, plain.picture) && near(railed.picture, CGRect(x: 8, y: 8, width: 366, height: 228)))
+check("the rail: row 1 a row of no height under the picture's margin, its five buttons empty too",
+      railed.row1.height == 0 && near(railed.row1.minY, 244) && railed.row1.width == plain.row1.width
+        && railed.buttons.count == 5 && railed.buttons.allSatisfy { $0.height == 0 })
+check("the rail: the strip 10 under that (its thumbnails 24 from the picture, as from row 1's buttons before), then the keys and the trackpad",
+      near(railed.strip.minY, 254) && near(railed.strip.minY + 6 - railed.picture.maxY, 24)
+        && near(railed.keys.minY, railed.strip.maxY + 10) && near(railed.trackpad.minY, railed.keys.maxY + 10)
+        && near(railed.trackpad.maxY, 662))
+check("the rail: the trackpad gains exactly row 1's band (72 pt: 282 against 210)",
+      near(railed.trackpad.height, plain.trackpad.height + 72) && near(railed.trackpad.height, 282) && near(L.row1Band, 72)
+        && near(L.fixedHeight(rail: true), 168) && near(L.fixedHeight(rail: false), 240))
+check("the rail: nothing on the page reaches into the strip",
+      ([railed.picture, railed.row1, railed.strip, railed.keys, railed.trackpad, railed.drawer, railed.settings, railed.menus] + railed.caps + railed.dim)
+        .allSatisfy { $0.maxX <= 382 + 0.01 })
+check("the rail: five round 44 pt buttons centred in the strip (x 402)",
+      railed.railButtons.count == 5 && railed.railButtons.allSatisfy { near($0.minX, 402) && $0.width == 44 && $0.height == 44 })
+check("the rail: Keyboard and Mouse under the clock's block (182, 238), Apps, Desktop and Settings up from the home indicator (476, 532, 588)",
+      railed.railButtons.map { Int($0.minY) } == [182, 238, 476, 532, 588])
+check("the rail: the last button ends 12 above the home indicator (632 of 644), the first 12 under the block (170)",
+      near(railed.railButtons[4].maxY, 632) && near(railed.railButtons[0].minY, L.railTop + 12))
+check("the rail: the buttons in order and apart, inside the display",
+      zip(railed.railButtons, railed.railButtons.dropFirst()).allSatisfy { $0.maxY + 12 <= $1.minY + 0.01 }
+        && railed.railButtons.allSatisfy { $0.minX >= 382 && $0.maxX <= 466 && $0.minY >= 0 && $0.maxY <= 678 })
+check("the rail: the drawer and the panel open over the picture from the top, the page wide, to the trackpad's bottom",
+      near(railed.drawer, CGRect(x: 14, y: 8, width: 354, height: 654)) && near(railed.settings, railed.drawer)
+        && near(railed.settingsAnchor.x, 368 / 466) && near(railed.settingsAnchor.y, 8 / 678))
+check("the rail: one dim, the whole page and none of the strip", railed.dim.count == 1 && near(railed.dim[0], CGRect(x: 0, y: 0, width: 382, height: 678)))
+check("the rail: the Menus button still ends the strip at a fifth of the row, and the strip stops short of it",
+      near(railed.menus.width, plain.menus.width) && near(railed.menus.minX, plain.menus.minX)
+        && near(railed.stripBesideMenus.maxX, railed.menus.minX - 8) && near(railed.menus.midY, railed.strip.midY))
+check("the rail: Larger Picture never (a keyboard given is ignored: the Duo has a hinge)",
+      L(size: cover, keyboard: 300, rail: 84).keyboard == nil && !L(size: cover, keyboard: 300, rail: 84).largerPicture
+        && L(size: cover, keyboard: 300, rail: 84) == railed)
+check("the rail is an input: with and without differ, and the same inputs agree", railed != L(size: cover) && railed == L(size: cover, rail: 84))
+check("no rail: everything as before (the 382 pt cover's layout the same as on main)",
+      L(size: CGSize(width: 382, height: 678)).railButtons.isEmpty && !plain.hasRail && plain.rail == 0
+        && near(plain.row1.height, 50) && plain.dim.count == 2)
+check("the rail's rule: the cover's 84 pt strip upright makes one; a notch's inset (44) does not, nor the strip on its side, nor none",
+      L.rail(trailingInset: 84, size: cover) == 84 && L.rail(trailingInset: 44, size: cover) == 0
+        && L.rail(trailingInset: 84, size: CGSize(width: 678, height: 466)) == 0 && L.rail(trailingInset: 0, size: cover) == 0
+        && L.rail(trailingInset: 60, size: cover) == 60 && L.rail(trailingInset: 59, size: cover) == 0)
+check("the rail's rule: a width over the screen is clamped, a negative one is none",
+      L(size: cover, rail: 900).rail == 466 && L(size: cover, rail: -5).rail == 0 && !L(size: cover, rail: -5).hasRail)
+var railGridOK = true, railGridBad = ""
+for h in stride(from: 500, through: 1400, by: 7) {
+    for w in [300, 382, 466, 599] {
+        for r in [60, 84, 100] {
+            let l = L(size: CGSize(width: CGFloat(w), height: CGFloat(h)), rail: CGFloat(r))
+            let page = CGFloat(w - r)
+            let buttons = l.railButtons
+            let inside = buttons.allSatisfy { $0.minX >= page - 0.01 && $0.maxX <= CGFloat(w) + 0.01 && $0.minY >= L.railTop && $0.maxY <= CGFloat(h) + 0.01 }
+            let ordered = zip(buttons, buttons.dropFirst()).allSatisfy { $0.maxY <= $1.minY + 0.01 }
+            let lowerClear = CGFloat(h) >= L.railTop + 12 + 5 * 56 + L.railBottom ? buttons[4].maxY <= CGFloat(h) - 34 + 0.01 : true
+            let pageOK = [l.picture, l.strip, l.keys, l.trackpad, l.drawer, l.settings].allSatisfy { $0.maxX <= page + 0.01 && $0.minX >= 0 }
+            let order = l.picture.maxY <= l.row1.minY && l.row1.maxY <= l.strip.minY && l.strip.maxY <= l.keys.minY && l.keys.maxY <= l.trackpad.minY
+            let ok = inside && ordered && lowerClear && pageOK && order && l.row1.height == 0 && l.dim.count == 1 && l.trackpad.height >= 120
+            if !ok { railGridOK = false; railGridBad = "\(w)×\(h) rail \(r)" }
+        }
+    }
+}
+check("the rail's grid: at every height 500–1,400 and 300–599 wide with a 60, 84 or 100 pt strip, the buttons inside the strip under the block, in order, the page's parts beside it in order" + (railGridOK ? "" : " — first failure at \(railGridBad)"), railGridOK)
 
 print("\(passes) passed, \(fails) failed")
 exit(fails == 0 ? 0 : 1)
