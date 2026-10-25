@@ -5,7 +5,11 @@
 the duo side like on native apps", with a photo of Mail on the cover: its list in the 382 pt beside
 the camera strip, and in the strip, under the clock and the battery ring, Back and More; at the
 bottom, Search and Compose. His picks (2026-10-24): Keyboard and Mouse, then Apps (the drawer, with
-its search field), Desktop and Settings; row 1 goes and Aa moves into Settings, as on an iPad.
+its search field), Desktop and Settings; row 1 goes and Aa moves into Settings, as on an iPad. Then,
+on the device (2026-10-25): no Mouse on the cover ("a massive trackpad is there"), the Menus button
+in its place, and out of the thumbnails' row, "to give more room for the windows to show". And the
+cover on its side: "the icons should be the same + mouse toggle, that way that entire upper bar
+again can be used for apps; also move the search [Apps] as well".
 
 The laptop split he also asked for ("Split View should scale the controls to be 1/2 screen and
 display to be 1/2 screen when it's like a laptop") is docs/iphone-duo-plan.md's (b1), already built:
@@ -29,13 +33,14 @@ Today's stream screen keeps the safe area but the bottom, so the phone's arrange
 
 ## Decisions
 
-1. **Where the rail is known.** The stream screen's outer GeometryReader reads its trailing
-   safe-area inset; on a phone held upright an inset of 60 pt or more is the cover's strip
-   (`PhonePortraitLayout.rail(trailingInset:size:)`; a notch's insets are sideways, so no iPhone
-   upright has one, and an iPad window that narrow is not the phone's arrangement). Then the screen
-   takes the strip in (`ignoresSafeArea(edges: [.bottom, .trailing])`) and hands its width to the
-   layout as `rail`. Nothing depends on the hinge or the fold: the rail is there from the first
-   frame, and the harness's `-SillLayout 466x678` (trailing 84) draws it too.
+1. **Where the rail is known** (`CoverRail`, pure, in PhonePortraitLayout.swift). The stream
+   screen's outer GeometryReader reads its side safe-area insets; on a phone an inset of 72 pt or
+   more is the cover's strip (a notch's or Dynamic Island's side insets sideways are 44 to 62; the
+   cover's is 84): upright at the trailing edge, on its side at whichever edge has one (the leading
+   first). Then the screen takes that edge in (`ignoresSafeArea`, with the bottom as before) and
+   hands the rail on: upright its width to `PhonePortraitLayout` as `rail`, on its side the
+   `CoverRail` itself. Nothing depends on the hinge or the fold: the rail is there from the first
+   frame, and the harness's `-SillLayout 466x678` and `678x466` (their 84 pt insets) draw it too.
 2. **The page.** `PhonePortraitLayout(size:keyboard:rail:)`: every rect that was a function of the
    screen's width is now of the page's, `size.width − rail` (382 on the cover), so the picture, the
    strip, the keys and the trackpad are exactly what the 382 pt layout had. Row 1 is a row of no
@@ -43,19 +48,33 @@ Today's stream screen keeps the safe area but the bottom, so the phone's arrange
    the picture, as from row 1's buttons before), and its 72 pt band goes to the trackpad (282 pt on
    the cover, 210 before). The Menus button keeps its place at the strip's end (a fifth of the row,
    under where Settings was). Larger Picture never applies (a hinge), and a keyboard given is ignored.
-3. **The buttons** (`railButtons`, `RailButton` order): 44 pt round, centred across the strip (x 402
-   on the cover); Keyboard and Mouse from 12 pt under the clock's block (`railTop` 170: the status
-   box with the status bar showing; hidden, the box is 82 and the rail keeps its start, so nothing
-   moves), 12 pt apart (182, 238); Apps, Desktop and Settings up from 12 pt above the home
-   indicator (`railBottom` 46: 476, 532, 588, the last ending at 632 of 644). On a display too short
-   for both groups the lower one gives way upward (none the cover is; `Tests/checks/phone-portrait`
-   checks every height from 500). Symbols only (the strip is 84 pt): the accessibility labels and
-   the Large Content Viewer name them.
-4. **Mouse on the phone** (new there: the bar's Mouse button was sideways only, 2026-10-23): the
-   same `StreamScreen.mouseMode` (`Sill.mouseMode`, remembered), the same invisible
-   `TrackpadView` over the picture with `pictureTravel`, the direct-touch overlay under it taking
-   no touch. Only with the rail: the halves and an iPhone's row 1 have no Mouse button, so the
-   state never shows there.
+3. **The buttons** (`CoverRail.buttons`, `CoverRail.Button` order): 44 pt round, centred across
+   the strip (x 402 upright); the upper group from 12 pt under the clock's block, 12 pt apart, the
+   lower group (Apps, Desktop, Settings) up from 12 pt above the home indicator. Upright the block is
+   170 (`uprightBlock`: the status box with the status bar showing; hidden, the box is 82 and the
+   rail keeps its start, so nothing moves): Keyboard and Menus at 182 and 238, the lower three at
+   476, 532 and 588 (the last ending at 632 of 644). On a display too short for both groups the
+   lower one gives way upward (none the cover is; `Tests/checks/phone-portrait` checks every height
+   from 500). Symbols only (the strip is 84 pt): the accessibility labels and the Large Content
+   Viewer name them.
+3a. **On its side** (678×466; the compact landscape layout, 2026-10-25): six, Mouse after Menus
+   (the picture is the only surface there, so Mouse mode earns its place), and the compact top bar is
+   the window strip alone across the whole 594 pt page (TopBar's `railed`: no Apps, Menus, Keyboard,
+   Mouse, Desktop or Settings in it). The block is at the strip's top when the strip is at the left
+   (device landscapeRight: the probe's box (0, 0, 84×82)), so the upper three start at 94 (94, 150,
+   206) and the lower three end 12 above the home indicator (264, 320, 376, ending at 420 of 432);
+   with the strip at the right (device landscapeLeft) the block is at the bottom (594, 384, 84×82),
+   so the upper three start at 12 (12, 68, 124) and the lower end 12 above the block (216, 272, 328,
+   ending at 372 of 384). Both from the insets alone (`CoverRail.init`), no occlusion API. The page
+   is laid out beside a clear 84 pt column; the rail's buttons are drawn over the strip in the
+   screen's space (`CoverRailButtons`, shared with the upright screen).
+4. **Menus in the rail, not the strip** (2026-10-25; the first cut had Mouse here). The rail's
+   second button is the Mac's pull-down (`MacMenuButton` with `label: false`, symbol alone), faded
+   to 0.35 and taking no touch while the Mac sent no menus, so the five keep their places; the
+   strip's row no longer makes room for it (`menus` a rect of no width at the strip's end,
+   `stripBesideMenus` the whole strip), so the thumbnails have the whole 382 pt. No Mouse mode on
+   the cover: the trackpad under the picture is the pointer's surface there, and the picture stays
+   direct touch. Mouse stays the landscape bar's.
 5. **The drawer and the Settings panel** open over the picture from the top (y 8), the page wide,
    to the trackpad's bottom; the panel grows from the page's top-trailing corner, beside the rail.
    The dim and the catcher cover the whole page and none of the strip, so the rail stays live while
@@ -79,8 +98,9 @@ Today's stream screen keeps the safe area but the bottom, so the phone's arrange
 `iOSClient/PortraitStreamScreen.swift` (`rail`, `mouseMode`, no row 1 with the rail, the rail's
 buttons, Mouse mode over the picture pane, `RailTourTarget`); `iOSClient/StreamScreen.swift` (the
 outer reader, the trailing inset taken in on the cover, `portrait(metrics:largerKeyboard:rail:)`, a
-DEBUG `rail:` console line); `Tests/checks/phone-portrait` (18 checks and a grid, 13 mutants R1–R13;
-M3, M5, M19 and M26 follow their lines). No wire change, nothing on the Mac.
+DEBUG `rail:` console line); `Tests/checks/phone-portrait` (the rail's checks and two grids, 18 mutants R1–R18;
+M3, M5, M19 and M26 follow their lines); `MacMenuButton.label`; TopBar's `railed`;
+`CoverRailButtons` (PortraitStreamScreen.swift). No wire change, nothing on the Mac.
 
 ## Untested
 
@@ -92,14 +112,19 @@ Aman, on the Duo closed, upright, streaming:
   Xcode's console says `rail: the cover's 84 pt strip at the right holds …`.
 - U2 The page: no row of buttons under the picture; the thumbnails right under it; the trackpad
   taller by that row.
-- U3 Each button: Keyboard brings the keyboard (and Hide Keyboard above it); Mouse lights and the
-  picture becomes a trackpad (the arrow, a tap's click, a swipe across the picture); again, touch;
-  Apps opens the drawer over the picture and closes it; Desktop; Settings opens over the picture,
-  with Text Size in This iPhone, and closes.
+- U3 Each button: Keyboard brings the keyboard (and Hide Keyboard above it); Menus opens the Mac's
+  menus (iOS places the pull-down: whether it stays clear of the camera), faded while the Desktop
+  shows and the Mac sent none; Apps opens the drawer over the picture and closes it; Desktop;
+  Settings opens over the picture, with Text Size in This iPhone, and closes. The thumbnails' row
+  shows no Menus button, whatever streams.
 - U4 A long press on a rail button shows its name large; VoiceOver reads the page, then the rail.
 - U5 The tour (Settings › Take the Tour): the cards point at the rail's Keyboard, Apps and Settings.
-- U6 On its side, and open in every pose: nothing changed. An iPad and a plain iPhone: nothing
-  changed.
+- U6 On its side, both ways round: the strip holds Keyboard, Menus, Mouse, Apps, Desktop, Settings,
+  clear of the clock block (at the top with the strip at the left, at the bottom with it at the
+  right) and of the home indicator; the top bar is thumbnails only, the whole width; Mouse works
+  on the picture; the console says `rail: the cover's 84 pt strip at the left holds …`. Open, in
+  every pose: nothing changed. An iPad and a plain iPhone: nothing changed (an iPhone sideways has
+  side insets of 44 to 62 and no rail).
 - U7 If the strip's block is taller or shorter than 170 on the device (the probe's number), the
   first button sits on the clock or too low: say by how much, and `railTop` moves.
 - U8 The harness: `-SillLayout 466x678` draws the rail (whether `ignoresSafeArea` reaches through
@@ -108,3 +133,6 @@ Aman, on the Duo closed, upright, streaming:
 ## Progress
 
 - 2026-10-24 Design and build, uncompiled; this document.
+- 2026-10-25 Aman, on the device: the rail shows. Mouse out, Menus in, the strip whole (decision 4).
+  Then the cover on its side: `CoverRail` for both, six on the side with Mouse, the bar the strip
+  alone (3a). Uncompiled.

@@ -226,20 +226,30 @@ struct StreamScreen: View {
         // the phone's arrangement as its rail (PhonePortraitLayout.rail); everywhere else (no strip
         // that wide upright: a notch's insets are sideways) the screen keeps its safe area as before.
         GeometryReader { outer in
-            let rail = DuoLayout.phoneArrangement
-                ? PhonePortraitLayout.rail(trailingInset: outer.safeAreaInsets.trailing, size: outer.size) : 0
+            // The whole display: the reader's room plus the insets the screen takes in (the bottom
+            // always, and the strip's edge); on the cover the other side's inset is 0, so this is
+            // what the inner reader measures once the strip is taken in.
+            let insets = outer.safeAreaInsets
+            let display = CGSize(width: outer.size.width + insets.leading + insets.trailing, height: outer.size.height + insets.bottom)
+            let rail: CoverRail? = DuoLayout.phoneArrangement
+                ? CoverRail.of(size: display, leading: insets.leading, trailing: insets.trailing) : nil
+            let side: Edge.Set = rail?.edge == .leading ? .leading : .trailing
+            let edges: Edge.Set = rail == nil ? .bottom : [.bottom, side]
             screen(rail: rail)
-                .ignoresSafeArea(edges: rail > 0 ? [.bottom, .trailing] : .bottom)
+                .ignoresSafeArea(edges: edges)
                 #if DEBUG
                 .onChange(of: rail, initial: true) { _, now in
-                    if now > 0 { print("rail: the cover's \(Int(now)) pt strip at the right holds Keyboard, Mouse, Apps, Desktop and Settings") }
+                    if let now {
+                        let names = now.buttons.map { "\($0.button)" }.joined(separator: ", ")
+                        print("rail: the cover's \(Int(now.width)) pt strip at the \(now.edge == .leading ? "left" : "right") holds \(names)")
+                    }
                 }
                 #endif
         }
     }
 
-    /// The stream screen proper; `rail` is the cover's strip it takes in at the trailing edge (0 for none).
-    private func screen(rail: CGFloat) -> some View {
+    /// The stream screen proper; `rail` is the cover's strip it takes in at one edge (nil for none).
+    private func screen(rail: CoverRail?) -> some View {
         // Which layout, and at which size — see `DuoLayout` for the thresholds and the Duo posture
         // behind each one.
         GeometryReader { geo in
@@ -267,12 +277,28 @@ struct StreamScreen: View {
                     case .innerLandscape:
                         landscape(bar: .regular, width: geo.size.width, fold: posture.info(in: geo.size))
                     case .outerLandscape:
-                        landscape(bar: .compact, width: geo.size.width, fold: posture.info(in: geo.size))
+                        // The Duo's cover on its side (docs/cover-rail-plan.md): the strip beside
+                        // the page holds the bar's buttons, the page the strip-only bar and the picture.
+                        HStack(spacing: 0) {
+                            if let rail, rail.edge == .leading { Color.clear.frame(width: rail.width) }
+                            landscape(bar: .compact, width: rail?.page.width ?? geo.size.width,
+                                      fold: posture.info(in: geo.size), railed: rail != nil)
+                            if let rail, rail.edge == .trailing { Color.clear.frame(width: rail.width) }
+                        }
                     case .innerPortrait:
                         portrait(metrics: .regular)
                     case .outerPortrait:
                         portrait(metrics: DuoLayout.phoneArrangement ? .phone : .compact, largerKeyboard: largerKeyboard,
-                                 rail: rail)
+                                 rail: rail?.edge == .trailing ? rail?.width ?? 0 : 0)
+                    }
+                    // The rail's buttons on the cover's side, over the strip (the upright rail is
+                    // PortraitStreamScreen's); in the screen's space, as their frames are.
+                    if let rail, duo == .outerLandscape {
+                        CoverRailButtons(client: client, rail: rail, drawerOpen: $drawerOpen, keyboardShown: keyboardShown,
+                                         mouseMode: $mouseMode, settingsOpen: settingsOpen, iconSize: 20,
+                                         toggleKeyboard: { overlay.toggleKeyboard() },
+                                         setSettings: { setSettings($0, restoreKeyboard: $1) },
+                                         menusOpened: menusOpened, menusClosed: menusClosed)
                     }
                 }
                 // Under the pairing overlay and the tour nothing takes a touch: not the bar, and
@@ -1057,11 +1083,12 @@ struct StreamScreen: View {
         reduceMotion ? .opacity : .scale(scale: 0.94, anchor: anchor).combined(with: .opacity)
     }
 
-    private func landscape(bar plain: BarMetrics, width: CGFloat, fold: FoldInfo) -> some View {
+    /// `railed`: the cover's rail holds the buttons (CoverRail): the bar is the window strip alone.
+    private func landscape(bar plain: BarMetrics, width: CGFloat, fold: FoldInfo, railed: Bool = false) -> some View {
         // The book pose (docs/iphone-duo-plan.md, (a)): nothing on the fold's band; elsewhere as before.
         let (bar, stripWidth) = plain.clearing(fold, width: width)
         return VStack(spacing: 0) {
-            TopBar(client: client, metrics: bar, stripWidth: stripWidth, drawerOpen: $drawerOpen,
+            TopBar(client: client, metrics: bar, stripWidth: stripWidth, railed: railed, drawerOpen: $drawerOpen,
                    keyboardShown: $keyboardShown, mouseMode: $mouseMode,
                    textScale: $textScale, scaleOpen: $scaleOpen, windowMenu: $windowMenu,
                    settingsOpen: settingsOpen,
@@ -1091,7 +1118,7 @@ struct StreamScreen: View {
                              linkLine: shownLinkLine,
                              takeTour: takeTour,
                              largerKeyboard: largerKeyboard,
-                             rail: rail, mouseMode: $mouseMode)
+                             rail: rail)
     }
 
     private var streamShape: RoundedRectangle { RoundedRectangle(cornerRadius: 12, style: .continuous) }
@@ -1273,6 +1300,9 @@ private struct TopBar: View {
     /// The book pose: the strip's width, so that it ends short of the fold (BarMetrics.clearing);
     /// nil: it takes the room there is, as before.
     var stripWidth: CGFloat? = nil
+    /// The Duo's cover on its side: the rail holds every button (CoverRailButtons), the bar is the
+    /// strip alone, the whole row (docs/cover-rail-plan.md).
+    var railed: Bool = false
     @Binding var drawerOpen: Bool
     @Binding var keyboardShown: Bool
     /// Mouse mode: the picture a trackpad (StreamScreen.mouseMode).
@@ -1293,12 +1323,14 @@ private struct TopBar: View {
 
     var body: some View {
         HStack(spacing: metrics.gap) {
-            button(open: drawerOpen, symbol: "magnifyingglass", label: "Apps",
-                   accessibilityLabel: drawerOpen ? "Close the app list" : "Open the app list",
-                   action: {
-                       setSettings(false, false)
-                       withAnimation(.easeOut(duration: 0.18)) { drawerOpen.toggle() }
-                   })
+            if !railed {
+                button(open: drawerOpen, symbol: "magnifyingglass", label: "Apps",
+                       accessibilityLabel: drawerOpen ? "Close the app list" : "Open the app list",
+                       action: {
+                           setSettings(false, false)
+                           withAnimation(.easeOut(duration: 0.18)) { drawerOpen.toggle() }
+                       })
+            }
 
             WindowStrip(client: client, width: metrics.thumbWidth, height: metrics.thumbHeight,
                         radius: metrics.thumbRadius, spacing: metrics.thumbSpacing,
@@ -1311,6 +1343,8 @@ private struct TopBar: View {
             // The book pose: the fold's band, and nothing on it, between the strip and the buttons.
             if stripWidth != nil { Spacer(minLength: 0) }
 
+            // The cover's rail holds the buttons: the strip alone (the `if` ends after Settings).
+            if !railed {
             // The Mac's menus of the streamed app, next to the thumbnails because they are the picked
             // window's app's. Only while the Mac sent some, and where the bar holds it: with none the
             // strip takes its room back.
@@ -1355,6 +1389,7 @@ private struct TopBar: View {
                 .opacity(scaleOpen ? 0 : 1)
                 .allowsHitTesting(!scaleOpen)
                 .tourTarget(.settings)
+            }
         }
         .animation(.easeOut(duration: 0.16), value: scaleOpen)
         .animation(.easeOut(duration: 0.18), value: client.menus.hasMenus)

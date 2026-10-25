@@ -16,14 +16,20 @@ the cover's 84 pt camera strip. Device only, no wire change.
   of 60 pt or more (`PhonePortraitLayout.rail(trailingInset:size:)`; no iPhone has one upright) and
   hands its width to `PhonePortraitLayout(size:keyboard:rail:)`: the rows span the 382 pt page beside
   it exactly as before, row 1 is a row of no height (its 72 pt band goes to the trackpad), and five
-  44 pt round buttons stand in the strip (`railButtons`, `RailButton`): Keyboard and Mouse from 12
+  44 pt round buttons stand in the strip (`railButtons`, `RailButton`): Keyboard and Menus from 12
   under the clock's block (`railTop` 170), Apps, Desktop and Settings up from 12 above the home
-  indicator (`railBottom` 46). Aa is the Settings panel's there (as on an iPad); Mouse mode reaches
-  the phone's picture pane (the rail only). The drawer and the panel open over the picture; the dim
-  covers the page and leaves the rail live. The tour's Keyboard, Apps and Settings targets move to
-  the rail; its words are still row 1's (a task of its own). `Tests/checks/phone-portrait`: 18
-  checks, a grid, 13 mutants (R1–R13); the laptop split Aman asked for is PR #47's (b1), already
-  built.
+  indicator (`railBottom` 46). Menus is `MacMenuButton` without its label (`label: false`), faded
+  while the Mac sent none, and out of the thumbnails' row, which has the whole page (Aman,
+  2026-10-25, on the device, where the rail showed; the first cut's Mouse is gone: the cover has a
+  trackpad). Aa is the Settings panel's there (as on an iPad). The drawer and the panel open over
+  the picture; the dim covers the page and leaves the rail live. On its side (678×466; Aman,
+  2026-10-25) the same rail with Mouse after Menus, six (`CoverRail`, pure, in
+  PhonePortraitLayout.swift: the edge from the insets, the strip's block at the top with the strip
+  at the left and at the bottom with it at the right), the compact top bar the window strip alone
+  (TopBar's `railed`), the buttons drawn over the strip by `CoverRailButtons`, which both screens
+  share. The tour's Keyboard, Apps and Settings targets move to the rail; its words are still row
+  1's (a task of its own). `Tests/checks/phone-portrait`: the rail's checks, two grids, 18 mutants
+  (R1–R18); the laptop split Aman asked for is PR #47's (b1), already built.
 - **Unverified: nothing here compiled** (the session's shell has no Swift). For Aman: the plan's
   U1–U8 on the Duo's cover, and that an iPad and an iPhone look as before.
 

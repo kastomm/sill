@@ -24,6 +24,9 @@ struct MacMenuButton: View {
     var spacing: CGFloat = 4
     /// On the phone, the symbol in a box this tall, as row 1's buttons draw theirs.
     var iconBox: CGFloat? = nil
+    /// The "Menus" label under the symbol; false for the symbol alone (the Duo cover's rail, 44 pt
+    /// round: docs/cover-rail-plan.md).
+    var label: Bool = true
     /// Opening the pull-down puts the drawer, the Settings panel and a thumbnail's lights away: one
     /// thing open at a time. (While the Aa ruler is open the button is faded out and takes no touch.)
     let onOpen: () -> Void
@@ -44,9 +47,11 @@ struct MacMenuButton: View {
                     .font(.system(size: iconSize))
                     .foregroundStyle(open ? Palette.accent : Palette.text)
                     .frame(height: iconBox)
-                Text("Menus")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(open ? Palette.accent : Palette.barLabel)
+                if label {
+                    Text("Menus")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(open ? Palette.accent : Palette.barLabel)
+                }
             }
         }
         .allowsHitTesting(false)

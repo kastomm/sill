@@ -26,12 +26,13 @@ import CoreGraphics
 /// The rail (docs/cover-rail-plan.md; Aman, 2026-10-24): on the iPhone Duo's cover upright, the
 /// 84 pt camera strip at the right (the safe area's trailing inset, which the stream screen then
 /// takes in: `size` is the whole display, `rail` the strip's width) holds a column of round buttons
-/// where Mail and the other system apps put theirs: Keyboard and Mouse under the clock, and by the
-/// thumb Apps, Desktop and Settings (`railButtons`, in `RailButton` order). Row 1 is gone (a row of
-/// no height, so the thumbnails follow the picture) and its height goes to the trackpad; Aa is the
-/// Settings panel's there, as on an iPad. The drawer and the panel then open over the picture from
-/// the top, and the dim covers the whole page but the rail, which stays live as row 1 did. Without a
-/// rail (`rail` 0: every iPhone, the cover on its side) nothing here changes.
+/// where Mail and the other system apps put theirs: Keyboard and Menus under the clock, and by the
+/// thumb Apps, Desktop and Settings (`railButtons`, CoverRail's places). Row 1 is gone (a row of
+/// no height, so the thumbnails follow the picture) and its height goes to the trackpad; the Menus
+/// button leaves the strip's row too, so the thumbnails have the whole row (Aman, 2026-10-25); Aa
+/// is the Settings panel's there, as on an iPad. The drawer and the panel then open over the picture
+/// from the top, and the dim covers the whole page but the rail, which stays live as row 1 did.
+/// Without a rail (`rail` 0: every iPhone, the cover on its side) nothing here changes.
 ///
 /// `DuoLayout.outerPortrait` on an iPhone draws this (`DuoLayout.phoneArrangement`): every iPhone
 /// upright, and the Duo's outer display upright; an iPad window that narrow keeps the compact halves.
@@ -113,22 +114,14 @@ struct PhonePortraitLayout: Equatable {
     /// Row 3's caps: esc, tab, ctrl, opt, cmd, shift.
     static let capCount = 6
 
-    // MARK: The rail
+    // MARK: The rail (CoverRail, below)
 
-    /// The rail's buttons, top to bottom: two under the clock, three by the thumb.
-    enum RailButton: Int, CaseIterable { case keyboard, mouse, apps, desktop, settings }
-    /// A rail button: round, a touch target, as Mail's in the strip.
-    static let railButton: CGFloat = 44
-    /// Between the rail's buttons, and from the clock's block to the first.
-    static let railGap: CGFloat = 12
-    /// The cover's clock, battery and camera block at the strip's top, as the probe measured it with
-    /// the status bar showing (docs/iphone-duo-plan.md: the box (382, 0, 84×170)); the rail begins
-    /// under it. Hidden, the box is 82 pt; the rail keeps the same start, so nothing moves.
-    static let railTop: CGFloat = 170
-    /// Under the rail's last button to the display's bottom edge: the home indicator's 34 and a gap.
-    static let railBottom: CGFloat = 46
-    /// A strip narrower than this is a notch's side inset, not the cover's camera strip: no rail.
-    static let minRail: CGFloat = 60
+    /// A rail button's size, for the views (CoverRail.button).
+    static var railButton: CGFloat { CoverRail.button }
+    /// The clock's block upright, for the check (CoverRail.uprightBlock).
+    static var railTop: CGFloat { CoverRail.uprightBlock }
+    /// Under the last button to the display's edge upright, for the check (CoverRail.homeIndicator + gap).
+    static var railBottom: CGFloat { CoverRail.homeIndicator + CoverRail.gap }
 
     /// The stream screen's size, which everything below is measured in (origin at its top left).
     let size: CGSize
@@ -138,8 +131,9 @@ struct PhonePortraitLayout: Equatable {
     /// The rail's width at the trailing edge (the cover's camera strip, taken into `size`), or 0 for
     /// none: then the rows span `size` as before.
     let rail: CGFloat
-    /// The rail's buttons, in `RailButton` order, in `size`'s space; none without a rail.
-    let railButtons: [CGRect]
+    /// The rail's buttons (the cover upright: Keyboard, Menus, Apps, Desktop, Settings), each with its
+    /// frame in `size`'s space (CoverRail); none without a rail.
+    let railButtons: [CoverRail.Place]
     /// The picture's pane: the frame the video is drawn in, aspect-fit, and the viewport the Mac
     /// fits windows to. With Larger Picture, the picture's room: the viewport still, but the frame is
     /// the picture's own shape inside it (`pane(video:)`).
@@ -193,6 +187,9 @@ struct PhonePortraitLayout: Equatable {
     /// Whether the rail holds the buttons (the cover upright): row 1 is then a row of no height.
     var hasRail: Bool { rail > 0 }
 
+    /// The rail itself (`railButtons` are its places), for the view that draws it; nil without one.
+    var coverRail: CoverRail? { rail > 0 ? CoverRail(edge: .trailing, width: rail, size: size) : nil }
+
     /// Everything but the picture and the trackpad, top to bottom: 240 pt.
     static var fixedHeight: CGFloat {
         margin + margin + underPicture + band + buttonHeight + band + rowGap + stripHeight + rowGap + capHeight
@@ -206,29 +203,10 @@ struct PhonePortraitLayout: Equatable {
     static func fixedHeight(rail: Bool) -> CGFloat { rail ? fixedHeight - row1Band : fixedHeight }
 
     /// The rail's width for a stream screen whose trailing safe-area inset is `trailingInset`, held
-    /// upright (`size`): the cover's camera strip, 60 pt or more; 0 for a notch's side inset, a
-    /// screen on its side, or none.
+    /// upright (`size`): the cover's camera strip; 0 for a notch's side inset, a screen on its side,
+    /// or none (CoverRail.of, the trailing edge upright).
     static func rail(trailingInset: CGFloat, size: CGSize) -> CGFloat {
-        size.height > size.width && trailingInset >= minRail ? trailingInset : 0
-    }
-
-    /// Where the rail's five buttons go in a strip `rail` wide at the trailing edge of `size`: round,
-    /// centred across the strip; Keyboard and Mouse from under the clock's block, Apps, Desktop and
-    /// Settings up from above the home indicator. On a display too short for both groups (none the
-    /// cover is) the lower group gives way upward and the two may touch. Whole points.
-    static func railButtons(rail: CGFloat, size: CGSize) -> [CGRect] {
-        guard rail > 0 else { return [] }
-        let x = (size.width - rail + (rail - railButton) / 2).rounded(.down)
-        let step = railButton + railGap
-        let topStart = railTop + railGap
-        let lowerCount = 3
-        let lowerHeight = CGFloat(lowerCount) * railButton + CGFloat(lowerCount - 1) * railGap
-        let lowerStart = max(topStart + 2 * step, (size.height - railBottom - lowerHeight).rounded(.down))
-        return RailButton.allCases.map { button in
-            let i = button.rawValue
-            let y = i < 2 ? topStart + CGFloat(i) * step : lowerStart + CGFloat(i - 2) * step
-            return CGRect(x: x, y: y, width: railButton, height: railButton)
-        }
+        CoverRail.of(size: size, leading: 0, trailing: trailingInset)?.width ?? 0
     }
 
     /// Larger Picture: everything but the picture above the keyboard's top, top to bottom: 152 pt
@@ -250,7 +228,7 @@ struct PhonePortraitLayout: Equatable {
         self.keyboard = keyboard
         // The page the rows span: the whole screen, or what is left beside the rail.
         let width = size.width - rail, height = size.height
-        railButtons = Self.railButtons(rail: rail, size: size)
+        railButtons = rail > 0 ? CoverRail(edge: .trailing, width: rail, size: size).buttons : []
 
         // The picture: full width less the margins, 16:10, unless the trackpad would drop under
         // its least height; then the picture gives way (to nothing, at worst).
@@ -280,13 +258,19 @@ struct PhonePortraitLayout: Equatable {
         if footprint == nil {
             // Row 2: the strip, under row 1's band, wider than the rows by its own padding. With the
             // Mac's menus, the Menus button under Settings, and the strip up to `gap` before it.
-            // With the rail, under the picture's margin (row 1 has no band).
+            // With the rail, under the picture's margin (row 1 has no band), and the Menus button is
+            // the rail's: the strip keeps its whole row (a Menus rect of no width at its end).
             let stripTop = rail > 0 ? row1.maxY + Self.rowGap : row1.maxY + Self.band + Self.rowGap
             strip = CGRect(x: Self.side - Self.stripInset, y: stripTop,
                            width: max(0, width - 2 * (Self.side - Self.stripInset)), height: Self.stripHeight)
-            menus = CGRect(x: settingsButton.minX, y: strip.minY + (Self.stripHeight - Self.buttonHeight) / 2,
-                           width: settingsButton.width, height: Self.buttonHeight)
-            stripBesideMenus = CGRect(x: strip.minX, y: strip.minY, width: max(0, menus.minX - Self.gap - strip.minX), height: strip.height)
+            if rail > 0 {
+                menus = CGRect(x: strip.maxX, y: strip.minY + (Self.stripHeight - Self.buttonHeight) / 2, width: 0, height: Self.buttonHeight)
+                stripBesideMenus = strip
+            } else {
+                menus = CGRect(x: settingsButton.minX, y: strip.minY + (Self.stripHeight - Self.buttonHeight) / 2,
+                               width: settingsButton.width, height: Self.buttonHeight)
+                stripBesideMenus = CGRect(x: strip.minX, y: strip.minY, width: max(0, menus.minX - Self.gap - strip.minX), height: strip.height)
+            }
             buttonsBesideMenus = buttons
         } else {
             // Larger Picture: no strip, so the key row comes straight under row 1's band; the Menus
@@ -456,4 +440,102 @@ struct PhonePortraitLayout: Equatable {
             CGRect(x: row.minX + CGFloat(i) * (each + gap), y: row.minY, width: each, height: row.height)
         }
     }
+}
+
+// MARK: - The rail
+
+/// The rail on the iPhone Duo's cover (docs/cover-rail-plan.md): the camera strip the cover keeps
+/// beside Sill (84 pt: the safe area's trailing inset upright, its leading or trailing inset on its
+/// side), which the system apps use for their toolbars, holding Sill's bar buttons as a column of
+/// round ones, so the page beside it has only the picture and the windows. Upright (the phone's
+/// arrangement, `PhonePortraitLayout`): Keyboard and Menus under the clock's block, Apps, Desktop and
+/// Settings up from the home indicator; the picture is direct touch and the trackpad is under it, so
+/// no Mouse. On its side (the compact landscape layout): the same with Mouse after Menus, six, so the
+/// whole top bar is the window strip (Aman, 2026-10-25). The clock, battery and camera block is at
+/// the strip's top when the strip is at the left (device landscapeRight: the probe's box (0, 0,
+/// 84×82)) and at its bottom when at the right (device landscapeLeft: (594, 384, 84×82)); upright,
+/// at the top with the status bar showing (the box (382, 0, 84×170)). Pure (CoreGraphics), checked
+/// with PhonePortraitLayout.
+struct CoverRail: Equatable {
+    enum Edge: Equatable { case leading, trailing }
+    /// The buttons, top to bottom: the upper group under the block (Keyboard, Menus, and on the side
+    /// Mouse), the lower by the thumb (Apps, Desktop, Settings).
+    enum Button: Int, CaseIterable, Equatable { case keyboard, menus, mouse, apps, desktop, settings }
+    struct Place: Equatable {
+        let button: Button
+        let frame: CGRect
+    }
+
+    /// A rail button: round, a touch target, as Mail's in the strip.
+    static let button: CGFloat = 44
+    /// Between the buttons, and from the block or the edge to the first.
+    static let gap: CGFloat = 12
+    /// The block upright, with the status bar showing (hidden, 82: the rail keeps its start).
+    static let uprightBlock: CGFloat = 170
+    /// The block on the side (the status bar in it).
+    static let sideBlock: CGFloat = 82
+    static let homeIndicator: CGFloat = 34
+    /// A strip narrower than this is a notch's side inset (44 to 62 pt on the Dynamic Island
+    /// iPhones, sideways), not the cover's camera strip (84): no rail.
+    static let minWidth: CGFloat = 72
+
+    /// Which edge of the screen the strip is at.
+    let edge: Edge
+    /// The strip's width.
+    let width: CGFloat
+    /// The screen the rail is in (the whole display, the strip included).
+    let size: CGSize
+    /// The buttons with their frames in `size`'s space, top to bottom.
+    let buttons: [Place]
+
+    /// Whether the screen is held upright (the phone's arrangement) or on its side (the landscape layout).
+    var upright: Bool { size.height > size.width }
+    /// The strip's frame.
+    var strip: CGRect { CGRect(x: edge == .leading ? 0 : size.width - width, y: 0, width: width, height: size.height) }
+    /// The page beside the strip: what the layouts get.
+    var page: CGRect { CGRect(x: edge == .leading ? width : 0, y: 0, width: max(0, size.width - width), height: size.height) }
+
+    /// The rail for a screen of `size` with the safe area's `leading` and `trailing` insets (the
+    /// stream screen's, before it takes the strip in), on a phone: upright, a strip at the trailing
+    /// edge; on its side, at whichever edge has one (the leading first). Nil when neither inset is a
+    /// strip: every iPhone, an iPad window, the inner display.
+    static func of(size: CGSize, leading: CGFloat, trailing: CGFloat) -> CoverRail? {
+        if size.height > size.width {
+            return trailing >= minWidth ? CoverRail(edge: .trailing, width: trailing, size: size) : nil
+        }
+        if leading >= minWidth { return CoverRail(edge: .leading, width: leading, size: size) }
+        if trailing >= minWidth { return CoverRail(edge: .trailing, width: trailing, size: size) }
+        return nil
+    }
+
+    /// The rail at `edge`, `width` wide, in a screen of `size`: the buttons centred across the strip,
+    /// the upper group from `gap` under the block, the lower up from `gap` above the home indicator
+    /// (or the block, where it is at the bottom). On a screen too short for both groups (none the
+    /// cover is) the lower group gives way upward and the two may touch. Whole points.
+    init(edge: Edge, width: CGFloat, size: CGSize) {
+        self.edge = edge
+        self.width = max(0, min(width, size.width))
+        self.size = size
+        let upright = size.height > size.width
+        let order: [Button] = upright ? [.keyboard, .menus, .apps, .desktop, .settings]
+                                      : [.keyboard, .menus, .mouse, .apps, .desktop, .settings]
+        // What the strip's ends hold: upright the block above and the home indicator below; on its
+        // side the block at the top with the strip at the left, at the bottom (over the home
+        // indicator's row) with it at the right.
+        let topBlock: CGFloat = upright ? Self.uprightBlock : (edge == .leading ? Self.sideBlock : 0)
+        let bottomBlock: CGFloat = upright || edge == .leading ? Self.homeIndicator : Self.sideBlock
+        let x = (edge == .leading ? (self.width - Self.button) / 2 : size.width - self.width + (self.width - Self.button) / 2).rounded(.down)
+        let step = Self.button + Self.gap
+        let upperCount = order.count - 3
+        let upperStart = topBlock + Self.gap
+        let lowerHeight = 3 * Self.button + 2 * Self.gap
+        let lowerStart = max(upperStart + CGFloat(upperCount) * step, (size.height - bottomBlock - Self.gap - lowerHeight).rounded(.down))
+        buttons = order.enumerated().map { i, button in
+            let y = i < upperCount ? upperStart + CGFloat(i) * step : lowerStart + CGFloat(i - upperCount) * step
+            return Place(button: button, frame: CGRect(x: x, y: y, width: Self.button, height: Self.button))
+        }
+    }
+
+    /// The frame of one button, if the rail holds it.
+    func frame(of button: Button) -> CGRect? { buttons.first { $0.button == button }?.frame }
 }
